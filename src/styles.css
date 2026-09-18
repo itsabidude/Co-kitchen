@@ -446,3 +446,49 @@ button { font: inherit; cursor: pointer; }
   .verification-logo{width:140px;height:140px}
   .logo-admin-mark{width:92px;height:92px}
 }
+
+
+/* FINAL MOBILE-FIRST POLISH + BRANDING */
+.coco-logo{width:48px;height:48px;object-fit:contain;display:block;flex:0 0 auto}
+.coco-logo.large{width:118px;height:118px}
+.customer-site-header .coco-logo{width:54px;height:54px}
+.customer-site-header{align-items:center}
+.admin-brand .coco-logo{width:42px;height:42px}
+.admin-logo{display:flex;justify-content:center;margin-bottom:16px}
+.admin-logo .coco-logo{width:110px;height:110px}
+.verification-logo{min-width:0;width:auto;height:auto;padding:0;border:0;background:transparent;display:flex}
+/* Formal, larger type across both portals */
+.landing-page,.customer-flow,.admin-shell{font-family:'Libre Baskerville',Georgia,serif}
+.landing-page input,.customer-flow input,.admin-shell input,.admin-shell select,.admin-shell button,.landing-page button,.customer-flow button{font-family:'DM Sans',Arial,sans-serif}
+.landing-page .brand-name,.customer-flow .brand-name{font-size:19px}
+.landing-page .meal-card h2{font-size:28px}
+.landing-page .meal-card p{font-size:16px}
+.landing-page .meal-items span{font-size:15px}
+.customer-hero h1{font-size:clamp(40px,8vw,60px)}
+.customer-item span{font-size:20px}
+.customer-item strong{font-size:19px}
+.customer-item{min-height:78px}
+.customer-form label,.customer-details-fields label{font-size:12px}
+.admin-shell .dashboard-intro h1,.admin-shell .orders-page-intro h1{font-size:clamp(36px,5vw,52px)}
+.admin-shell .panel-heading h2{font-size:25px}
+.admin-shell .table-row{font-size:13px}
+.admin-shell .stat-copy strong{font-size:32px}
+.menu-rate-intro{padding:20px 24px 4px;border-bottom:1px solid rgba(29,68,40,.08);display:grid;gap:6px}
+.menu-rate-intro strong{font:700 16px 'Libre Baskerville',serif;color:var(--green)}
+.menu-rate{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;padding:9px 0 0}
+.menu-rate>span{font-size:9px;font-weight:700;letter-spacing:1px;color:#807a6b}
+.menu-rate button{border:0;background:transparent;color:#b2afa5;font-size:19px;padding:2px 3px}
+.menu-rate button.rated{color:#8a6b35}
+@media(max-width:700px){
+ .customer-site-header .coco-logo{width:48px;height:48px}
+ .landing-page .meal-card h2{font-size:25px}
+ .landing-page .meal-items span{font-size:14px}
+ .customer-item{padding:17px 16px}
+ .customer-item span{font-size:18px}
+ .customer-hero h1{font-size:38px}
+ .admin-shell .panel-heading h2{font-size:22px}
+ .admin-shell .stat-copy strong{font-size:27px}
+ .menu-rate{grid-column:1/-1}
+ .menu-rate-intro{padding:17px}
+}
+@media(max-width:380px){.coco-logo.large{width:96px;height:96px}.customer-item span{font-size:17px}}
