@@ -33,18 +33,72 @@ function formatDate(date) {
 }
 
 function CustomerLanding() {
-  const [now, setNow] = useState(new Date());
-  React.useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
-  return <div className="landing-page">
-    <div className="page-background" aria-hidden="true" /><div className="page-wash" aria-hidden="true" />
-    <header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div><span className="since">Since 2024</span></header>
-    <main className="content">
-      <section className="welcome-card"><div className="welcome-inner"><h1>Made with love.</h1><p className="welcome-subtitle">Homely Kerala flavours</p><div className="heart-rule"><span/><Heart size={29} strokeWidth={1.7}/><span/></div></div></section>
-      <section className="date-block"><span className="today-label">TODAY</span><strong>{formatDate(now).replace(/, 2026$/,'')}</strong><span className="live-time">{new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).format(now)}</span></section>
-      <div className="instruction-box">CHOOSE ONE TO PROCEED</div>
-      <section className="meal-list">{MEALS.map(meal => <article className="meal-card" key={meal.id}><div className="meal-card-top"/><div className="meal-heading"><span className="meal-kicker">PRE-ORDER {meal.title.toUpperCase()}</span><h2>Pre-order {meal.title}</h2><p>{meal.delivery}</p></div><div className="meal-items">{meal.items.map((item,i)=><React.Fragment key={item}><span>{item}</span>{i<meal.items.length-1&&<i>·</i>}</React.Fragment>)}</div><button className="start-button">START PRE-ORDER <ArrowRight size={18}/></button></article>)}</section>
-    </main>
-  </div>;
+  const [now,setNow]=useState(new Date());
+  const [slots,setSlots]=useState([{id:'lunch',is_available:true},{id:'dinner',is_available:true}]);
+  const [menus,setMenus]=useState([]);
+  const [name,setName]=useState(sessionStorage.getItem('cocoCustomerName')||'');
+  const [mobile,setMobile]=useState(sessionStorage.getItem('cocoCustomerMobile')||'');
+  const [page,setPage]=useState('home');
+  const [slot,setSlot]=useState(null);
+  const [cart,setCart]=useState([]);
+  const [order,setOrder]=useState(null);
+  const [error,setError]=useState('');
+  useEffect(()=>{const t=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(t)},[]);
+  const today=new Date().toISOString().slice(0,10);
+  const load=async()=>{if(!cokitbaseReady)return;try{const [s,m]=await Promise.all([getSlotAvailability(),getMenuForDate(today)]);setSlots(s||[]);setMenus(m||[])}catch(e){setError(e.message||'Could not load today’s menu.')}};
+  useEffect(()=>{load();const unsub=subscribeToPortalChanges(load);return unsub},[]);
+  const slotOpen=id=>slots.find(x=>x.id===id)?.is_available??true;
+  const itemsFor=id=>menus.filter(x=>x.slot===id&&x.is_available&&x.remaining_quantity>0);
+  const openSlot=id=>{setError('');setSlot(id);setPage('menu')};
+  const proceed=()=>{if(!name.trim()){setError('Please enter your name to continue.');return}sessionStorage.setItem('cocoCustomerName',name.trim());setPage('home')};
+  const add=(item)=>setCart(c=>{const found=c.find(x=>x.id===item.id);if(found)return c.map(x=>x.id===item.id?{...x,quantity:Math.min(x.quantity+1,item.remaining_quantity)}:x);return [...c,{...item,quantity:1}]});
+  const changeQty=(id,delta)=>setCart(c=>c.flatMap(x=>{if(x.id!==id)return [x];const menuItem=menus.find(m=>m.id===id);const q=Math.min(menuItem?.remaining_quantity||x.quantity,x.quantity+delta);return q>0?[{...x,quantity:q}]:[]}));
+  const total=cart.reduce((sum,x)=>sum+x.quantity*Number(x.price),0);
+  const checkout=()=>{if(!name.trim()){setError('Please enter your name.');setPage('home');return}setPage('checkout')};
+  const placeOrder=async()=>{
+    if(!name.trim()||!/^[0-9]{10}$/.test(mobile)){setError('Enter your name and a valid 10-digit mobile number.');return}
+    if(!cart.length)return;
+    try{
+      if(!cokitbaseReady){setOrder({order_code:'#CK-DEMO',customer_name:name,total_amount:total,payment_status:'PENDING'});setPage('payment');return}
+      const orderCode='#CK'+Math.floor(1000+Math.random()*9000);
+      const {data:o,error:e}=await cokitbase.from('orders').insert({order_code:orderCode,customer_name:name.trim(),customer_mobile:mobile,order_date:today,total_amount:total,payment_status:'PENDING',order_status:'PLACED'}).select().single();
+      if(e)throw e;
+      const rows=cart.map(x=>({order_id:o.id,menu_id:x.id,item_name:x.item_name,slot:x.slot,quantity:x.quantity,unit_price:x.price}));
+      const {error:e2}=await cokitbase.from('order_items').insert(rows);if(e2)throw e2;
+      const {error:e3}=await cokitbase.from('payments').insert({order_id:o.id,status:'PENDING',method:'UPI'});if(e3)throw e3;
+      setOrder({...o,order_items:rows});setPage('payment');
+    }catch(e){setError(e.message||'Could not place your order.')}
+  };
+  const markPaid=async()=>{
+    if(!order)return;
+    if(cokitbaseReady&&order.id){const {error:e}=await cokitbase.from('orders').update({payment_status:'CUSTOMER_MARKED_PAID',updated_at:new Date().toISOString()}).eq('id',order.id);if(e){setError(e.message);return}await cokitbase.from('payments').update({status:'CUSTOMER_MARKED_PAID',updated_at:new Date().toISOString()}).eq('order_id',order.id);setOrder({...order,payment_status:'CUSTOMER_MARKED_PAID'})}
+    setPage('verification');
+  };
+  useEffect(()=>{if(!order?.id||!cokitbaseReady)return;const refresh=async()=>{const {data}=await cokitbase.from('orders').select('*').eq('id',order.id).single();if(data)setOrder(o=>({...o,...data}))};const unsub=subscribeToPortalChanges(refresh);return unsub},[order?.id]);
+  const home=<div className="landing-page"><div className="page-background" aria-hidden="true"/><div className="page-wash" aria-hidden="true"/><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div><span className="since">Since 2024</span></header><main className="content"><section className="welcome-card"><div className="welcome-inner"><h1>Made with love.</h1><p className="welcome-subtitle">Homely Kerala flavours</p><div className="heart-rule"><span/><Heart size={29} strokeWidth={1.7}/><span/></div></div></section><section className="date-block"><span className="today-label">TODAY</span><strong>{formatDate(now).replace(/, 2026$/,'')}</strong><span className="live-time">{new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).format(now)}</span></section><label className="customer-name-field">YOUR NAME<input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter your name"/><button className="start-button" onClick={proceed}>LET’S PROCEED <ArrowRight size={18}/></button></label><div className="instruction-box">CHOOSE ONE TO PROCEED</div><section className="meal-list">{['lunch','dinner'].map(id=>{const m=MEALS.find(x=>x.id===id);const open=slotOpen(id);const live=itemsFor(id);return <article className="meal-card" key={id}><div className="meal-card-top"/><div className="meal-heading"><span className="meal-kicker">{open?'PRE-ORDER '+m.title.toUpperCase():'CURRENTLY UNAVAILABLE'}</span><h2>Pre-order {m.title}</h2><p>{m.delivery}</p></div><div className="meal-items">{(live.length?live:m.items.map(x=>({item_name:x}))).map((x,i)=><React.Fragment key={x.item_name}><span>{x.item_name}</span>{i<(live.length?live:m.items).length-1&&<i>·</i>}</React.Fragment>)}</div><button className="start-button" disabled={!open} onClick={()=>openSlot(id)}>{open?'START PRE-ORDER':'NOT AVAILABLE'} {open&&<ArrowRight size={18}/>}</button></article>})}</section>{error&&<div className="login-error">{error}</div>}</main></div>;
+  if(page==='home')return home;
+  if(page==='menu')return <CustomerMenu slot={slot} items={itemsFor(slot)} cart={cart} add={add} changeQty={changeQty} onBack={()=>setPage('home')} onCart={checkout}/>;
+  if(page==='checkout')return <CustomerCheckout name={name} mobile={mobile} setMobile={setMobile} cart={cart} total={total} onBack={()=>setPage('menu')} onPlace={placeOrder} error={error}/>;
+  if(page==='payment')return <CustomerPayment order={order} total={total} onPaid={markPaid}/>;
+  return <CustomerVerification order={order} onHome={()=>{setPage('home');setCart([])}}/>;
+}
+
+function CustomerMenu({slot,items,cart,add,changeQty,onBack,onCart}) {
+  const title=slot==='lunch'?'Lunch':'Dinner'; const meal=MEALS.find(x=>x.id===slot);
+  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div><button className="cart-button" onClick={onCart}>YOUR ORDER ({cart.reduce((s,x)=>s+x.quantity,0)})</button></header><main className="customer-content"><button className="back-dashboard" onClick={onBack}>← BACK TO SLOTS</button><div className="customer-hero"><span>{title.toUpperCase()} MENU</span><h1>{title}</h1><p>{meal.delivery}</p></div><section className="customer-menu-list">{items.map(item=><article className="customer-item" key={item.id}><div><span>{item.item_name}</span><small>{item.remaining_quantity} available</small></div><strong>₹{Number(item.price).toFixed(0)}</strong><button onClick={()=>add(item)}>ADD</button></article>)}{!items.length&&<div className="empty-customer">This menu is currently unavailable or sold out.</div>}</section><button className="floating-slot" onClick={()=>onBack()}>{slot==='lunch'?'CLICK FOR DINNER MENU →':'CLICK FOR LUNCH MENU →'}</button></main></div>;
+}
+
+function CustomerCheckout({name,mobile,setMobile,cart,total,onBack,onPlace,error}) {
+  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></header><main className="customer-content"><button className="back-dashboard" onClick={onBack}>← BACK TO MENU</button><div className="customer-hero"><span>YOUR ORDER</span><h1>Order Overview</h1></div><section className="customer-order-box">{['lunch','dinner'].map(slot=>{const rows=cart.filter(x=>x.slot===slot);if(!rows.length)return null;return <div className="order-slot-box" key={slot}><h3>{slot.toUpperCase()}</h3>{rows.map(x=><div className="order-line" key={x.id}><span>{x.item_name} × {x.quantity}</span><strong>₹{x.quantity*Number(x.price)}</strong></div>)}</div>})}<div className="customer-total"><span>TOTAL</span><strong>₹{total}</strong></div></section><section className="customer-form"><label>YOUR NAME<input value={name} readOnly/></label><label>MOBILE NUMBER<input value={mobile} onChange={e=>setMobile(e.target.value.replace(/\D/g,'').slice(0,10))} inputMode="numeric" placeholder="10-digit mobile number"/></label>{error&&<div className="login-error">{error}</div>}<button className="start-button" onClick={onPlace}>PLACE ORDER <ArrowRight size={18}/></button></section></main></div>;
+}
+
+function CustomerPayment({order,total,onPaid}) {
+  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></header><main className="customer-content centered"><div className="customer-hero"><span>PAYMENT</span><h1>UPI PAYMENT</h1><p>Complete payment using the QR / UPI details below.</p></div><div className="qr-placeholder">UPI QR</div><div className="upi-id">coco-kitchen@upi</div><p className="payment-note">Demo UPI ID — replace with the kitchen's registered UPI ID.</p><button className="start-button" onClick={onPaid}>PAYMENT COMPLETED</button><p className="payment-note">Payment will be verified by CO-CO Kitchen after submission.</p></main></div>;
+}
+
+function CustomerVerification({order,onHome}) {
+  const verified=order?.payment_status==='VERIFIED';
+  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></header><main className="customer-content centered"><div className="verification-logo">CO-CO KITCHEN</div><span className="admin-eyebrow">{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</span><h1>{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</h1><p>Thank you, {order?.customer_name||'there'}.</p><div className="payment-status-badge">{verified?'VERIFIED':'BEING VERIFIED'}</div><p>Your payment is {verified?'verified.':'being verified, in the meantime tell us your fav dish of Co-co'}</p>{!verified&&<div className="food-fact">Try our homely Kerala flavours — fresh, simple and made with care.</div>}<button className="start-button" onClick={onHome}>BACK TO HOME</button></main></div>;
 }
 
 function AdminLogin({ onLogin }) {
