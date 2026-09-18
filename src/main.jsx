@@ -33,6 +33,10 @@ function formatDate(date) {
   return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }).format(date).toUpperCase();
 }
 
+function CocoLogo({large=false}) {
+  return <img className={large ? 'coco-logo large' : 'coco-logo'} src="/Co-kitchen/coco-logo.svg" alt="Co-Co Kitchen" />;
+}
+
 function CustomerLanding() {
   const [now,setNow]=useState(new Date());
   const [slots,setSlots]=useState([{id:'lunch',is_available:true},{id:'dinner',is_available:true}]);
@@ -178,7 +182,7 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
     finally{setSaving(false);}
   };
   return <div className="admin-shell dashboard-shell">
-    <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
+    <header className="admin-header"><div className="admin-brand"><CocoLogo/><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
     <main className="dashboard-content order-detail-page">
       <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> ALL ORDERS</button>
       <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{order.id}</h1><p>{order.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
@@ -257,7 +261,7 @@ function AdminMenu({ onBack, onLogout }) {
         <div className="panel-heading"><div><span className="panel-kicker">CUSTOMER PORTAL</span><h2>Service Availability</h2></div><span className="menu-state">LIVE</span></div>
         <div className="service-toggle-grid">{['lunch','dinner'].map(id=>{const x=slots.find(s=>s.id===id)||{is_available:true};return <div className="service-toggle-card" key={id}><div><strong>{id.toUpperCase()}</strong><span>{x.is_available?'Customers can order this slot':'Hidden from customers'}</span></div><button className={'availability-toggle '+(x.is_available?'on':'')} onClick={()=>toggleSlot(id)}><span/></button></div>})}</div>
       </section>
-      <section className="dashboard-panel menu-editor">
+      <section className="dashboard-panel menu-editor"><div className="menu-rate-intro"><span className="panel-kicker">MENU & CUSTOMER FEEDBACK</span><strong>Provide today's menu, set rates, and capture item feedback.</strong></div>
         <div className="menu-slot-tabs"><button className={slot==='lunch'?'active':''} onClick={()=>setSlot('lunch')}>LUNCH MENU</button><button className={slot==='dinner'?'active':''} onClick={()=>setSlot('dinner')}>DINNER MENU</button></div>
         <div className="panel-heading"><div><span className="panel-kicker">ADD / EDIT MENU ITEM</span><h2>{slot==='lunch'?'Lunch':'Dinner'} Menu & Rates</h2></div><span className="menu-state">LIVE DATA</span></div>
         <div className="menu-card-list">{items.map((item,i)=><article className="menu-item-editor-card" key={item.id||i}>
