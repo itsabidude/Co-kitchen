@@ -72,11 +72,12 @@ function CustomerLanding() {
   },[]);
   useEffect(()=>{
     let alive=true;
-    const boot=async()=>{try{await load()}catch(_e){if(alive)setError('Could not load today’s menu.')}};
-    boot();
-    if(!cokitbaseReady)return()=>{alive=false};
-    const unsub=subscribeToPortalChanges(()=>{if(alive)load()});
-    return()=>{alive=false;unsub()};
+    const refresh=async()=>{try{await load()}catch(_e){if(alive)setError('Could not load today’s menu.')}};
+    refresh();
+    const poll=setInterval(refresh,3000);
+    if(!cokitbaseReady)return()=>{alive=false;clearInterval(poll)};
+    const unsub=subscribeToPortalChanges(()=>{if(alive)refresh()});
+    return()=>{alive=false;clearInterval(poll);unsub()};
   },[]);
   const slotOpen=id=>slots.find(x=>x.id===id)?.is_available??true;
   const itemsFor=id=>menus.filter(x=>x.slot===id&&x.is_available&&x.remaining_quantity>0);
@@ -340,7 +341,6 @@ function AdminMenu({ onBack, onLogout }) {
     const item=items[i];
     if(!item)return;
     if(!item.id){setItems(items.filter((_,n)=>n!==i));return;}
-    if(!confirm('Delete this food item permanently from this service date?'))return;
     setSaving(true);setMessage('');
     try{
       const {error}=await cokitbase.rpc('delete_menu_item',{p_menu_id:item.id});
