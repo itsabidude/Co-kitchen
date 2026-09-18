@@ -96,6 +96,34 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
   </div>;
 }
 
+function AdminMenu({ onBack, onLogout }) {
+  const tomorrow = new Date(Date.now()+86400000);
+  const dateLabel = new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'long',year:'numeric'}).format(tomorrow).toUpperCase();
+  const [slot,setSlot] = useState('LUNCH');
+  const [items,setItems] = useState([
+    {name:'Pothichoru — Veg',price:'90',qty:'30'},
+    {name:'Pothichoru — Egg',price:'100',qty:'30'},
+    {name:'Pothichoru — Chicken',price:'130',qty:'30'}
+  ]);
+  const update=(i,key,val)=>setItems(items.map((x,n)=>n===i?{...x,[key]:val}:x));
+  const add=()=>setItems([...items,{name:'',price:'',qty:'30'}]);
+  return <div className="admin-shell dashboard-shell">
+    <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
+    <main className="dashboard-content menu-page">
+      <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> DASHBOARD</button>
+      <section className="orders-page-intro"><div><span className="admin-eyebrow">MENU MANAGEMENT</span><h1>Next Day's Menu.</h1><p>Set the meals, prices and availability before opening pre-orders.</p></div><div className="menu-date-card"><span>NEXT DAY</span><strong>{dateLabel}</strong></div></section>
+      <section className="dashboard-panel menu-editor">
+        <div className="menu-slot-tabs"><button className={slot==='LUNCH'?'active':''} onClick={()=>setSlot('LUNCH')}>LUNCH</button><button className={slot==='DINNER'?'active':''} onClick={()=>setSlot('DINNER')}>DINNER</button></div>
+        <div className="panel-heading"><div><span className="panel-kicker">MENU FOR {dateLabel}</span><h2>{slot} Menu</h2></div><span className="menu-state">DRAFT</span></div>
+        <div className="menu-fields menu-head"><span>FOOD ITEM</span><span>PRICE</span><span>AVAILABLE</span><span></span></div>
+        <div className="menu-item-list">{items.map((item,i)=><div className="menu-edit-row" key={i}><input value={item.name} onChange={e=>update(i,'name',e.target.value)} placeholder="Food item name"/><div className="price-input"><span>₹</span><input value={item.price} onChange={e=>update(i,'price',e.target.value)} inputMode="decimal"/></div><input value={item.qty} onChange={e=>update(i,'qty',e.target.value)} inputMode="numeric" placeholder="Qty"/><button className="remove-item" onClick={()=>setItems(items.filter((_,n)=>n!==i))}>REMOVE</button></div>)}</div>
+        <button className="add-item-button" onClick={add}>+ ADD FOOD ITEM</button>
+        <div className="menu-editor-footer"><span>Prices and availability will be shown to customers when this menu is published.</span><button className="admin-primary publish-button" onClick={()=>alert(slot+' menu saved for '+dateLabel+'.')}>SAVE {slot} MENU <ArrowRight size={17}/></button></div>
+      </section>
+    </main>
+  </div>;
+}
+
 function AdminOrders({ onBack, onOpenOrder, onLogout }) {
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState('ALL');
@@ -111,7 +139,7 @@ function AdminOrders({ onBack, onOpenOrder, onLogout }) {
   </div>;
 }
 
-function AdminDashboard({ onOrders, onLogout }) {
+function AdminDashboard({ onOrders, onMenu, onLogout }) {
   return <div className="admin-shell dashboard-shell">
     <header className="admin-header">
       <div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div>
@@ -130,7 +158,7 @@ function AdminDashboard({ onOrders, onLogout }) {
 
       <section className="dashboard-grid">
         <div className="dashboard-panel kitchen-panel">
-          <div className="panel-heading"><div><span className="panel-kicker">KITCHEN</span><h2>Preparation Summary</h2></div><button className="panel-link">VIEW KITCHEN <ChevronRight size={16}/></button></div>
+          <div className="panel-heading"><div><span className="panel-kicker">KITCHEN</span><h2>Preparation Summary</h2></div><button className="panel-link" onClick={onMenu}>VIEW KITCHEN <ChevronRight size={16}/></button></div>
           <div className="slot-tabs"><button className="active">LUNCH <span>24 orders</span></button><button>DINNER <span>18 orders</span></button></div>
           <div className="prep-list">{PREP.map(([name,count])=><div className="prep-row" key={name}><span>{name}</span><strong>{count}</strong></div>)}</div>
         </div>
@@ -138,7 +166,7 @@ function AdminDashboard({ onOrders, onLogout }) {
           <div className="panel-heading"><div><span className="panel-kicker">ACTION REQUIRED</span><h2>Payment Verification</h2></div><span className="count-badge">05 PENDING</span></div>
           <p className="panel-description">Payments marked as completed by customers are waiting for manual verification.</p>
           <div className="pending-list">{ORDERS.filter(o=>o.payment==='PENDING').map(o=><div className="pending-row" key={o.id}><div><strong>{o.id}</strong><span>{o.name} · {o.meal}</span></div><button>VERIFY <ChevronRight size={14}/></button></div>)}</div>
-          <button className="full-panel-button">VIEW ALL PAYMENTS <ArrowRight size={16}/></button>
+          <button className="full-panel-button" onClick={onOrders}>VIEW ALL PAYMENTS <ArrowRight size={16}/></button>
         </div>
       </section>
 
@@ -155,9 +183,11 @@ function App() {
   const [loggedIn, setLoggedIn] = useState(false);
   const [page, setPage] = useState('dashboard');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [page, setPage] = useState('dashboard');
   if (!isAdmin) return <CustomerLanding />;
   if (!loggedIn) return <AdminLogin onLogin={()=>setLoggedIn(true)}/>;
+  if (page==='menu') return <AdminMenu onBack={()=>setPage('dashboard')} onLogout={()=>{setLoggedIn(false);setPage('dashboard')}}/>;
   if (page==='order-details' && selectedOrder) return <AdminOrderDetails order={selectedOrder} onBack={()=>setPage('orders')} onLogout={()=>{setLoggedIn(false);setPage('dashboard')}}/>;
-  return page==='orders' ? <AdminOrders onBack={()=>setPage('dashboard')} onOpenOrder={(o)=>{setSelectedOrder(o);setPage('order-details')}} onLogout={()=>{setLoggedIn(false);setPage('dashboard')}}/> : <AdminDashboard onOrders={()=>setPage('orders')} onLogout={()=>setLoggedIn(false)}/>;
+  return page==='orders' ? <AdminOrders onBack={()=>setPage('dashboard')} onOpenOrder={(o)=>{setSelectedOrder(o);setPage('order-details')}} onLogout={()=>{setLoggedIn(false);setPage('dashboard')}}/> : <AdminDashboard onOrders={()=>setPage('orders')} onMenu={()=>setPage('menu')} onLogout={()=>setLoggedIn(false)}/>;
 }
 createRoot(document.getElementById('root')).render(<App />);
