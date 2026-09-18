@@ -92,7 +92,7 @@ function CustomerLanding() {
 
 function CustomerMenu({slot,items,cart,add,changeQty,onBack,onSwitchSlot,onCart}) {
   const title=slot==='lunch'?'Lunch':'Dinner'; const meal=MEALS.find(x=>x.id===slot);
-  return <div className="customer-flow"><header className="site-header customer-site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div><button className="cart-icon-button" aria-label="Open your order" onClick={onCart}><ClipboardList size={21}/><span>{cart.reduce((s,x)=>s+x.quantity,0)}</span></button></header><main className="customer-content"><button className="back-dashboard" onClick={onBack}>← BACK TO SLOTS</button><div className="customer-hero"><span>{title.toUpperCase()} MENU</span><h1>{title}</h1><p>{meal.delivery}</p></div><section className="customer-menu-list">{items.map(item=><article className="customer-item" key={item.id}><div><span>{item.item_name}</span><small>{item.remaining_quantity} available</small></div><strong>₹{Number(item.price).toFixed(0)}</strong><button onClick={()=>add(item)}>ADD</button></article>)}{!items.length&&<div className="empty-customer">This menu is currently unavailable or sold out.</div>}</section><button className="floating-slot" onClick={()=>onSwitchSlot(slot==='lunch'?'dinner':'lunch')}>{slot==='lunch'?'CLICK FOR DINNER MENU →':'CLICK FOR LUNCH MENU →'}</button></main></div>;
+  return <div className="customer-flow"><header className="site-header customer-site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div><button className="cart-icon-button" aria-label="Open your order" onClick={onCart}><ClipboardList size={21}/><span>{cart.reduce((s,x)=>s+x.quantity,0)}</span></button></header><main className="customer-content"><button className="back-dashboard" onClick={onBack}>← BACK TO SLOTS</button><div className="customer-hero"><span>{title.toUpperCase()} MENU</span><h1>{title}</h1><p>{meal.delivery}</p></div><section className="customer-menu-list">{items.map(item=><article className="customer-item" key={item.id}><div><span>{item.item_name}</span><small>{item.remaining_quantity} available</small></div><strong>₹{Number(item.price).toFixed(0)}</strong><div className="quantity-control"><button className="qty-button" aria-label={`Decrease ${item.item_name}`} onClick={()=>changeQty(item.id,-1)} disabled={!(cart.find(x=>x.id===item.id)?.quantity)}>−</button><span className={cart.find(x=>x.id===item.id)?.quantity?'qty-number active':'qty-number'}>{cart.find(x=>x.id===item.id)?.quantity||0}</span><button className="qty-button" aria-label={`Increase ${item.item_name}`} onClick={()=>add(item)} disabled={(cart.find(x=>x.id===item.id)?.quantity||0)>=item.remaining_quantity}>+</button></div></article>)}{!items.length&&<div className="empty-customer">This menu is currently unavailable or sold out.</div>}</section><button className="floating-slot" onClick={()=>onSwitchSlot(slot==='lunch'?'dinner':'lunch')}>{slot==='lunch'?'CLICK FOR DINNER MENU →':'CLICK FOR LUNCH MENU →'}</button></main></div>;
 }
 
 function CustomerCheckout({name,mobile,setMobile,cart,total,onBack,onPlace,error}) {
@@ -119,14 +119,10 @@ function AdminLogin({ onLogin }) {
       setError('Please enter your administrator credentials.');
       return;
     }
-    try {
-      if (cokitbaseReady) {
-        const { error } = await cokitbase.auth.signInWithPassword({ email: email.trim(), password });
-        if (error) throw error;
-      }
+    if (email.trim() && password.trim()) {
       onLogin();
-    } catch (err) {
-      setError(err.message || 'Unable to sign in.');
+    } else {
+      setError('Please enter any dummy email and password.');
     }
   };
   return <div className="admin-shell login-shell">
@@ -140,7 +136,7 @@ function AdminLogin({ onLogin }) {
         <label>ADMIN EMAIL<input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="Enter your email" autoComplete="username"/></label>
         <label>PASSWORD<input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder="Enter your password" autoComplete="current-password"/></label>
         {error && <div className="login-error"><AlertCircle size={16}/>{error}</div>}
-        <button className="admin-primary" type="submit">SIGN IN <ArrowRight size={18}/></button><p className="demo-login-note">DESIGN MODE · ANY EMAIL + PASSWORD</p>
+        <button className="admin-primary" type="submit">SIGN IN <ArrowRight size={18}/></button><p className="demo-login-note">DESIGN MODE · DUMMY LOGIN<br/>Email: admin@coco.test · Password: coco123</p>
       </form>
       <div className="secure-note"><LockKeyhole size={14}/> AUTHORISED PERSONNEL ONLY</div>
     </div>
