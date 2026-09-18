@@ -72,7 +72,13 @@ function CustomerLanding() {
   };
   const markPaid=async()=>{
     if(!order)return;
-    if(cokitbaseReady&&order.id){const {error:e}=await cokitbase.from('orders').update({payment_status:'CUSTOMER_MARKED_PAID',updated_at:new Date().toISOString()}).eq('id',order.id);if(e){setError(e.message);return}await cokitbase.from('payments').update({status:'CUSTOMER_MARKED_PAID',updated_at:new Date().toISOString()}).eq('order_id',order.id);setOrder({...order,payment_status:'CUSTOMER_MARKED_PAID'})}
+    if(cokitbaseReady){
+      const token=sessionStorage.getItem('cocoOrderToken');
+      if(!token){setError('Order session expired.');return}
+      const {error:e}=await cokitbase.rpc('mark_payment_completed',{p_tracking_token:token});
+      if(e){setError(e.message);return}
+      setOrder({...order,payment_status:'CUSTOMER_MARKED_PAID'});
+    }
     setPage('verification');
   };
   useEffect(()=>{if(!order?.id||!cokitbaseReady)return;const refresh=async()=>{const {data}=await cokitbase.from('orders').select('*').eq('id',order.id).single();if(data)setOrder(o=>({...o,...data}))};const unsub=subscribeToPortalChanges(refresh);return unsub},[order?.id]);
