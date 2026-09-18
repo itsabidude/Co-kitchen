@@ -229,13 +229,9 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
     setSaving(true);
     try{
       const now=new Date().toISOString();
-      const {error:e1}=await cokitbase.from('orders').update({payment_status:'VERIFIED',updated_at:now}).eq('id',currentOrder.raw.id);
-      if(e1) throw e1;
-      // Keep the payment record in sync when one exists; the order's payment_status
-      // remains the canonical value used when reopening the customer.
-      const {error:e2}=await cokitbase.from('payments').update({status:'VERIFIED',verified_at:now,updated_at:now}).eq('order_id',currentOrder.raw.id);
-      if(e2) console.warn('Payment record sync warning:',e2.message);
-      const fresh={...currentOrder,payment:'VERIFIED',raw:{...currentOrder.raw,payment_status:'VERIFIED'}};
+      const {data:verifiedOrder,error}=await cokitbase.rpc('verify_order_payment',{p_order_id:currentOrder.raw.id});
+      if(error) throw error;
+      const fresh={...currentOrder,payment:verifiedOrder?.payment_status||'VERIFIED',raw:{...currentOrder.raw,payment_status:verifiedOrder?.payment_status||'VERIFIED',updated_at:verifiedOrder?.updated_at||now}};
       setLiveOrder(fresh);
       setPayment('VERIFIED');
     }catch(err){alert(err.message||'Could not verify payment.');}
