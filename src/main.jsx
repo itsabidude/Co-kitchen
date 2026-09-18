@@ -336,7 +336,20 @@ function AdminMenu({ onBack, onLogout }) {
 
   const update=(i,key,val)=>setItems(items.map((x,n)=>n===i?{...x,[key]:val}:x));
   const add=()=>setItems([...items,{name:'',price:'',qty:'30',remaining:'30',available:true,description:''}]);
-  const remove=(i)=>setItems(items.filter((_,n)=>n!==i));
+  const remove=async(i)=>{
+    const item=items[i];
+    if(!item)return;
+    if(!item.id){setItems(items.filter((_,n)=>n!==i));return;}
+    if(!confirm('Delete this food item permanently from this service date?'))return;
+    setSaving(true);setMessage('');
+    try{
+      const {error}=await cokitbase.rpc('delete_menu_item',{p_menu_id:item.id});
+      if(error)throw error;
+      setItems(current=>current.filter(x=>x.id!==item.id));
+      setMessage('Food item deleted successfully.');
+    }catch(e){setMessage(e.message||'Could not delete food item.');}
+    finally{setSaving(false)}
+  };
 
   const save=async()=>{
     setSaving(true);setMessage('');
@@ -403,6 +416,7 @@ function AdminOrders({ onBack, onOpenOrder, onLogout }) {
     setOrders((data||[]).map(o=>({
       id:o.order_code,name:o.customer_name,mobile:o.customer_mobile,
       meal:[...new Set((o.order_items||[]).map(i=>i.slot))].map(x=>x[0].toUpperCase()+x.slice(1)).join(' + ')||'Order',
+      items:(o.order_items||[]).map(i=>({name:i.item_name,quantity:Number(i.quantity||0),slot:i.slot})),
       total:'₹'+Number(o.total_amount||0).toFixed(0),payment:o.payment_status,status:o.order_status,
       raw:o
     })));
@@ -411,7 +425,7 @@ function AdminOrders({ onBack, onOpenOrder, onLogout }) {
   useEffect(()=>{load().catch(()=>setLoading(false)); const unsub=subscribeToPortalChanges(()=>load().catch(()=>{})); return unsub;},[]);
   const filtered=orders.filter(o=>(filter==='ALL'||o.status===filter||o.payment===filter)&&(o.id+o.name+o.meal+o.mobile).toLowerCase().includes(query.toLowerCase()));
   return <div className="admin-shell dashboard-shell"><header className="admin-header"><div className="admin-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="admin-brand-copy"><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
-    <main className="dashboard-content orders-page"><button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> DASHBOARD</button><section className="orders-page-intro"><div><span className="admin-eyebrow">ORDER MANAGEMENT</span><h1>Today's Orders.</h1><p>Review and manage every customer order for today.</p></div><div className="orders-count"><strong>{filtered.length}</strong><span>ORDERS SHOWN</span></div></section><section className="orders-toolbar"><div className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search order ID, customer or mobile"/></div><div className="filter-wrap"><Filter size={15}/><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="ALL">ALL ORDERS</option><option value="PENDING">PAYMENT PENDING</option><option value="VERIFIED">PAYMENT VERIFIED</option><option value="PREPARING">PREPARING</option><option value="READY">READY</option><option value="PLACED">PLACED</option></select></div></section><section className="dashboard-panel orders-page-panel">{loading?<p className="panel-description">Loading live orders…</p>:<div className="orders-table"><div className="table-row table-head"><span>ORDER</span><span>CUSTOMER</span><span>MEAL</span><span>TOTAL</span><span>PAYMENT</span><span>STATUS</span></div>{filtered.map(o=><div className="table-row order-click" key={o.id} onClick={()=>onOpenOrder(o)}><span className="order-id">{o.id}</span><span><strong className="customer-name">{o.name}</strong><small className="customer-phone">{o.mobile}</small></span><span>{o.meal}</span><span className="amount">{o.total}</span><span><b className={'pill '+o.payment.toLowerCase()}>{o.payment}</b></span><span><b className={'pill '+o.status.toLowerCase()}>{o.status}</b></span></div>)}</div>}</section></main></div>;
+    <main className="dashboard-content orders-page"><button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> DASHBOARD</button><section className="orders-page-intro"><div><span className="admin-eyebrow">ORDER MANAGEMENT</span><h1>Today's Orders.</h1><p>Review and manage every customer order for today.</p></div><div className="orders-count"><strong>{filtered.length}</strong><span>ORDERS SHOWN</span></div></section><section className="orders-toolbar"><div className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search order ID, customer or mobile"/></div><div className="filter-wrap"><Filter size={15}/><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="ALL">ALL ORDERS</option><option value="PENDING">PAYMENT PENDING</option><option value="VERIFIED">PAYMENT VERIFIED</option><option value="PREPARING">PREPARING</option><option value="READY">READY</option><option value="PLACED">PLACED</option></select></div></section><section className="dashboard-panel orders-page-panel">{loading?<p className="panel-description">Loading live orders…</p>:<div className="orders-table packing-orders-table"><div className="table-row table-head"><span>ORDER</span><span>CUSTOMER</span><span>MEALS ORDERED</span><span>TOTAL</span><span>PAYMENT</span><span>STATUS</span></div>{filtered.map(o=><div className="table-row order-click" key={o.id} onClick={()=>onOpenOrder(o)}><span className="order-id">{o.id}</span><span><strong className="customer-name">{o.name}</strong><small className="customer-phone">{o.mobile}</small></span><span className="ordered-meals">{o.items?.length?o.items.map((item,i)=><span className="ordered-meal-line" key={item.name+'-'+i}><strong>{item.quantity}×</strong> {item.name}</span>):<span>{o.meal}</span>}</span><span className="amount">{o.total}</span><span><b className={'pill '+o.payment.toLowerCase()}>{o.payment}</b></span><span><b className={'pill '+o.status.toLowerCase()}>{o.status}</b></span></div>)}</div>}</section></main></div>;
 }function AdminExpenses({onBack,onLogout}){
   const [date,setDate]=useState(new Date().toISOString().slice(0,10)); const [rows,setRows]=useState([]); const [form,setForm]=useState({item_name:'',quantity:'',unit:'kg',unit_price:'',notes:''}); const [saving,setSaving]=useState(false);
   const load=async()=>{if(!cokitbaseReady)return;const {data,error}=await cokitbase.from('expenses').select('*').eq('purchase_date',date).order('created_at',{ascending:false});if(error)throw error;setRows(data||[])}; useEffect(()=>{load().catch(console.error)},[date]);
