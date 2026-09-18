@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowRight, Heart, LockKeyhole, Utensils, ClipboardList,
@@ -93,23 +93,47 @@ function StatCard({ icon: Icon, label, value, detail, alert }) {
 function AdminOrderDetails({ order, onBack, onLogout }) {
   const [payment, setPayment] = useState(order.payment);
   const [status, setStatus] = useState(order.status);
+  const [saving,setSaving]=useState(false);
   const verified = payment === 'VERIFIED';
+  const items=order.raw?.order_items||[];
+  const verifyPayment=async()=>{
+    if(!cokitbaseReady||!order.raw?.id){setPayment('VERIFIED');return;}
+    setSaving(true);
+    try{
+      const now=new Date().toISOString();
+      const {error:e1}=await cokitbase.from('orders').update({payment_status:'VERIFIED',updated_at:now}).eq('id',order.raw.id);
+      if(e1) throw e1;
+      const {error:e2}=await cokitbase.from('payments').update({status:'VERIFIED',verified_at:now,updated_at:now}).eq('order_id',order.raw.id);
+      if(e2) throw e2;
+      setPayment('VERIFIED');
+    }catch(err){alert(err.message||'Could not verify payment.');}
+    finally{setSaving(false);}
+  };
+  const saveStatus=async()=>{
+    if(!cokitbaseReady||!order.raw?.id){alert('Order updated in prototype.');return;}
+    setSaving(true);
+    try{
+      const {error}=await cokitbase.from('orders').update({order_status:status,updated_at:new Date().toISOString()}).eq('id',order.raw.id);
+      if(error) throw error;
+      alert('Order update saved.');
+    }catch(err){alert(err.message||'Could not update order.');}
+    finally{setSaving(false);}
+  };
   return <div className="admin-shell dashboard-shell">
     <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
     <main className="dashboard-content order-detail-page">
       <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> ALL ORDERS</button>
-      <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{order.id}</h1><p>Placed today · {order.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
+      <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{order.id}</h1><p>{order.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
       <section className="detail-grid">
-        <div className="dashboard-panel detail-panel"><div className="panel-heading"><div><span className="panel-kicker">CUSTOMER</span><h2>{order.name}</h2></div></div><div className="customer-details"><div><Phone size={16}/><span>+91 98XXXXXX42</span></div><div><MapPin size={16}/><span>College Campus · Main Gate</span></div><div><CalendarDays size={16}/><span>18 September 2026</span></div></div></div>
-        <div className="dashboard-panel payment-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">PAYMENT</span><h2>{order.total}</h2></div><b className={'pill '+payment.toLowerCase()}>{payment}</b></div><div className="payment-detail-body"><div className="payment-method"><CircleDollarSign size={18}/><div><strong>UPI PAYMENT</strong><span>Customer marked payment as completed</span></div></div>{!verified&&<button className="verify-payment-button" onClick={()=>setPayment('VERIFIED')}><CheckCircle2 size={17}/> VERIFY PAYMENT</button>}{verified&&<div className="verified-note"><CheckCircle2 size={17}/> PAYMENT VERIFIED</div>}</div></div>
+        <div className="dashboard-panel detail-panel"><div className="panel-heading"><div><span className="panel-kicker">CUSTOMER</span><h2>{order.name}</h2></div></div><div className="customer-details"><div><Phone size={16}/><span>{order.mobile||'Mobile not provided'}</span></div><div><MapPin size={16}/><span>{order.raw?.delivery_location||'Location not provided'}</span></div><div><CalendarDays size={16}/><span>{order.raw?.order_date||formatDate(new Date())}</span></div></div></div>
+        <div className="dashboard-panel payment-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">PAYMENT</span><h2>{order.total}</h2></div><b className={'pill '+payment.toLowerCase()}>{payment}</b></div><div className="payment-detail-body"><div className="payment-method"><CircleDollarSign size={18}/><div><strong>UPI PAYMENT</strong><span>{payment==='CUSTOMER_MARKED_PAID'?'Customer marked payment as completed':'Payment status from Cokitbase'}</span></div></div>{!verified&&<button className="verify-payment-button" disabled={saving} onClick={verifyPayment}><CheckCircle2 size={17}/> {saving?'VERIFYING…':'VERIFY PAYMENT'}</button>}{verified&&<div className="verified-note"><CheckCircle2 size={17}/> PAYMENT VERIFIED — CUSTOMER WILL SEE THIS UPDATE</div>}</div></div>
       </section>
-      <section className="dashboard-panel items-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">ORDER SUMMARY</span><h2>Items Ordered</h2></div><span className="meal-label">{order.meal}</span></div><div className="detail-items"><div><span>Pothichoru — Chicken</span><strong>2 × ₹90</strong></div><div><span>Egg Pothichoru</span><strong>1 × ₹70</strong></div><div><span>Chicken Curry</span><strong>1 × ₹90</strong></div></div><div className="detail-total"><span>ORDER TOTAL</span><strong>{order.total}</strong></div></section>
-      <section className="dashboard-panel status-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">KITCHEN WORKFLOW</span><h2>Order Status</h2></div></div><div className="workflow"><button className={status==='PLACED'?'current':''} onClick={()=>setStatus('PLACED')}>PLACED</button><ChevronRight size={15}/><button className={status==='PREPARING'?'current':''} onClick={()=>setStatus('PREPARING')}>PREPARING</button><ChevronRight size={15}/><button className={status==='READY'?'current':''} onClick={()=>setStatus('READY')}>READY</button><ChevronRight size={15}/><button className={status==='OUT_FOR_DELIVERY'?'current':''} onClick={()=>setStatus('OUT_FOR_DELIVERY')}>OUT FOR DELIVERY</button><ChevronRight size={15}/><button className={status==='DELIVERED'?'current':''} onClick={()=>setStatus('DELIVERED')}>DELIVERED</button></div></section>
-      <div className="admin-detail-actions"><button className="secondary-detail-button" onClick={onBack}>BACK TO ORDERS</button><button className="admin-primary detail-save-button" onClick={()=>alert('Order updated in prototype.')}>SAVE ORDER UPDATE <ArrowRight size={17}/></button></div>
+      <section className="dashboard-panel items-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">ORDER SUMMARY</span><h2>Items Ordered</h2></div><span className="meal-label">{order.meal}</span></div><div className="detail-items">{items.length?items.map(i=><div key={i.id}><span>{i.item_name}</span><strong>{i.quantity} × ₹{Number(i.unit_price).toFixed(0)}</strong></div>):<div><span>Order items will appear here</span><strong>{order.total}</strong></div>}</div><div className="detail-total"><span>ORDER TOTAL</span><strong>{order.total}</strong></div></section>
+      <section className="dashboard-panel status-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">KITCHEN WORKFLOW</span><h2>Order Status</h2></div></div><div className="workflow">{['PLACED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED'].map((x,i)=><React.Fragment key={x}>{i>0&&<ChevronRight size={15}/>}<button className={status===x?'current':''} onClick={()=>setStatus(x)}>{x.replaceAll('_',' ')}</button></React.Fragment>)}</div></section>
+      <div className="admin-detail-actions"><button className="secondary-detail-button" onClick={onBack}>BACK TO ORDERS</button><button className="admin-primary detail-save-button" disabled={saving} onClick={saveStatus}>{saving?'SAVING…':'SAVE ORDER UPDATE'} <ArrowRight size={17}/></button></div>
     </main>
   </div>;
 }
-
 function AdminMenu({ onBack, onLogout }) {
   const [serviceDate, setServiceDate] = useState(new Date().toISOString().slice(0,10));
   const [slot,setSlot] = useState('lunch');
