@@ -561,3 +561,16 @@ button { font: inherit; cursor: pointer; }
  .verification-page .verification-copy{font-size:15px}
  .whatsapp-note{font-size:13px;padding:13px 12px}
 }
+
+/* CORRECT FULL BRAND LOGO */
+.brand-logo-image{width:78px;height:78px;object-fit:cover;border-radius:50%;display:block;flex:0 0 auto}
+.customer-site-header .customer-brand{display:flex;align-items:center;gap:0}
+.customer-site-header .brand-lockup{display:none}
+.admin-brand{display:flex;align-items:center;gap:12px}
+.admin-brand .brand-logo-image{width:64px;height:64px}
+.admin-brand-copy{display:flex;flex-direction:column;gap:2px}
+@media(max-width:600px){
+ .customer-site-header .brand-logo-image{width:68px;height:68px}
+ .customer-site-header{min-height:76px}
+ .admin-brand .brand-logo-image{width:58px;height:58px}
+}
