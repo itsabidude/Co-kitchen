@@ -492,3 +492,13 @@ button { font: inherit; cursor: pointer; }
  .menu-rate-intro{padding:17px}
 }
 @media(max-width:380px){.coco-logo.large{width:96px;height:96px}.customer-item span{font-size:17px}}
+
+.mobile-cart-bar{display:none}
+@media(max-width:600px){
+ .customer-flow .site-header{position:sticky;top:0;z-index:20;background:rgba(248,245,234,.96);backdrop-filter:blur(10px)}
+ .customer-flow .customer-content{padding-bottom:96px}
+ .mobile-cart-bar{position:fixed;display:flex;align-items:center;justify-content:center;gap:12px;left:12px;right:12px;bottom:12px;z-index:30;min-height:56px;border:0;border-radius:16px;background:var(--green);color:#fffdf5;box-shadow:0 12px 30px rgba(29,68,40,.25);font-size:12px;font-weight:700;letter-spacing:.8px}
+ .mobile-cart-bar span{margin-right:auto;padding-left:16px;font-size:13px;font-weight:500}
+ .mobile-cart-bar strong{font-size:11px;letter-spacing:1.2px}
+ .mobile-cart-bar svg{margin-right:14px}
+}
