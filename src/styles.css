@@ -379,3 +379,70 @@ button { font: inherit; cursor: pointer; }
  .customer-item span{font-size:17px}
  .landing-page .meal-items span{font-size:13px}
 }
+
+/* FINAL MOBILE-FIRST VISUAL PASS */
+.brand-logo-image{width:58px;height:58px;object-fit:contain;border-radius:50%;display:block}
+.compact-customer-brand{display:flex;align-items:center;gap:10px}
+.landing-page .brand-logo-image{width:58px;height:58px}
+.customer-site-header .brand-name{font-size:19px}
+.customer-site-header .brand-subtitle{font-size:9px}
+.customer-site-header .customer-brand{gap:10px}
+.customer-content,.content{font-size:16px}
+.customer-hero>span{font-size:12px}
+.customer-hero h1{font-family:'Libre Baskerville',serif;font-size:clamp(42px,9vw,60px)}
+.customer-hero p{font-size:17px}
+.customer-item span{font-family:'Libre Baskerville',serif;font-size:20px}
+.customer-item strong{font-family:'Libre Baskerville',serif;font-size:19px}
+.customer-item small{font-size:12px}
+.quantity-control .qty-button:disabled{opacity:.38}
+.login-error{font-size:13px}
+.landing-page .login-error{width:min(620px,100%);margin:12px auto 0;justify-content:center;background:#fff0ed;color:#b3261e;border:1px solid rgba(179,38,30,.18);font-weight:700}
+.verification-logo{width:170px;height:170px;padding:5px;border-radius:50%;margin:22px auto 20px}
+.verification-logo-image{width:100%;height:100%;object-fit:contain;border-radius:50%}
+.logo-admin-mark{width:105px;height:105px;background:transparent;border:0;margin-bottom:12px}
+.logo-admin-mark img{width:100%;height:100%;object-fit:contain;border-radius:50%}
+.logo-admin-header{width:42px;height:42px;background:transparent;border-radius:50%;overflow:hidden}
+.logo-admin-header img{width:100%;height:100%;object-fit:contain}
+.admin-login-card h1,.dashboard-intro h1,.orders-page-intro h1,.detail-hero h1{font-family:'Libre Baskerville',serif}
+.admin-shell .dashboard-intro h1{font-size:clamp(38px,5vw,52px)}
+.admin-shell .panel-heading h2{font-family:'Libre Baskerville',serif;font-size:25px}
+.admin-shell .table-row{font-size:13px}
+.admin-shell .stat-copy strong{font-family:'Libre Baskerville',serif}
+.menu-card-list{padding:0 24px 4px;display:grid;gap:12px}
+.menu-item-editor-card{border:1px solid rgba(183,163,107,.42);border-radius:16px;padding:17px;background:#fffef7}
+.menu-item-editor-fields{display:grid;grid-template-columns:1.6fr .7fr .8fr .8fr;gap:11px}
+.menu-item-editor-fields label{font-size:10px;font-weight:700;letter-spacing:1px;color:#6c7068}
+.menu-item-editor-fields input{display:block;width:100%;height:46px;margin-top:7px;border:1px solid rgba(29,68,40,.16);border-radius:10px;background:#fbfaf3;padding:0 11px;font-size:14px;outline:none}
+.menu-description-field{grid-column:1/-1}
+.menu-item-editor-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding-top:12px;border-top:1px solid rgba(29,68,40,.08)}
+.available-toggle-label{display:flex!important;align-items:center;gap:8px!important;font-size:10px!important;letter-spacing:1px!important;color:var(--green)!important}
+.available-toggle-label input{position:absolute;opacity:0;pointer-events:none}
+.availability-check{width:34px;height:20px;border-radius:99px;background:#d5d9d0;position:relative}
+.availability-check:after{content:'';position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff}
+.available-toggle-label input:checked + .availability-check{background:var(--green)}
+.available-toggle-label input:checked + .availability-check:after{left:17px}
+@media(max-width:600px){
+  .brand-logo-image{width:50px;height:50px}
+  .landing-page .brand-logo-image{width:52px;height:52px}
+  .customer-site-header .brand-name{font-size:16px}
+  .customer-site-header .brand-subtitle{font-size:7px}
+  .customer-content{width:calc(100% - 20px);padding-top:15px}
+  .customer-hero{padding:20px 0 18px}
+  .customer-hero h1{font-size:40px}
+  .customer-hero p{font-size:16px}
+  .customer-item{padding:17px 15px}
+  .customer-item span{font-size:18px}
+  .customer-item strong{font-size:18px}
+  .quantity-control{min-width:0}
+  .qty-button{width:38px;height:38px;font-size:21px}
+  .qty-number{font-size:17px}
+  .menu-card-list{padding:0 14px 4px}
+  .menu-item-editor-card{padding:15px}
+  .menu-item-editor-fields{grid-template-columns:1fr 1fr;gap:10px}
+  .menu-item-editor-fields label:first-child,.menu-description-field{grid-column:1/-1}
+  .menu-item-editor-fields input{height:48px;font-size:15px}
+  .menu-editor-footer{padding:17px 14px 20px}
+  .menu-editor-footer span{font-size:12px}
+  .verification-logo{width:140px;height:140px}
+  .logo-admin-mark{width:92px;height:92px}
+}
