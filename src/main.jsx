@@ -259,7 +259,7 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
     const refresh=async()=>{
       if(!cokitbaseReady||!order.raw?.id)return;
       try{
-        const {data,error}=await cokitbase.from('orders').select('*, order_items(*)').eq('id',order.raw.id).single();
+        const {data,error}=await cokitbase.rpc('get_admin_order',{p_order_id:order.raw.id});
         if(error)throw error;
         if(alive&&data){
           setLiveOrder({...order,id:data.order_code,name:data.customer_name,mobile:data.customer_mobile,total:'₹'+Number(data.total_amount||0).toFixed(0),payment:data.payment_status,status:data.order_status,raw:data});
@@ -280,7 +280,7 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
   const saveStatus=async()=>{
     if(!cokitbaseReady){alert('Order updated in prototype.');return}
     setSaving(true);
-    try{const {error}=await cokitbase.from('orders').update({order_status:status,updated_at:new Date().toISOString()}).eq('id',currentOrder.raw.id);if(error)throw error;setLiveOrder(o=>({...o,status,raw:{...o.raw,order_status:status}}));alert('Order update saved.')}catch(err){alert(err.message||'Could not update order.')}finally{setSaving(false)}
+    try{const {error}=await cokitbase.rpc('update_admin_order_status',{p_order_id:currentOrder.raw.id,p_status:status});if(error)throw error;setLiveOrder(o=>({...o,status,raw:{...o.raw,order_status:status}}));alert('Order update saved.')}catch(err){alert(err.message||'Could not update order.')}finally{setSaving(false)}
   };
   const changeItem=async(item)=>{
     const q=Math.max(1,Number(editing[item.id]??item.quantity)||1);
@@ -359,9 +359,13 @@ function AdminMenu({ onBack, onLogout }) {
         if(!item.name.trim()) continue;
         const total=Math.max(0,Number(item.qty)||0);
         const remaining=Math.min(total,Math.max(0,Number(item.remaining ?? total)||0));
-        const payload={service_date:serviceDate,slot,item_name:item.name.trim(),price:Math.max(0,Number(item.price)||0),total_quantity:total,remaining_quantity:remaining,is_available:Boolean(item.available),updated_at:new Date().toISOString()};
-        if(item.id){const {error}=await cokitbase.from('menus').update(payload).eq('id',item.id);if(error)throw error}
-        else{const {error}=await cokitbase.from('menus').insert(payload);if(error)throw error}
+        const {error}=await cokitbase.rpc('upsert_admin_menu_item',{
+          p_menu_id:item.id||null,p_service_date:serviceDate,p_slot:slot,
+          p_item_name:item.name.trim(),p_price:Math.max(0,Number(item.price)||0),
+          p_total_quantity:total,p_remaining_quantity:remaining,
+          p_is_available:Boolean(item.available),p_description:item.description||''
+        });
+        if(error)throw error;
       }
       await load();
       setMessage('Menu and rates published successfully.');
@@ -372,7 +376,7 @@ function AdminMenu({ onBack, onLogout }) {
   const toggleSlot=async(id)=>{
     const current=slots.find(x=>x.id===id); if(!current)return;
     if(!cokitbaseReady){setSlots(slots.map(x=>x.id===id?{...x,is_available:!x.is_available}:x));return}
-    const {error}=await cokitbase.from('service_slots').update({is_available:!current.is_available,updated_at:new Date().toISOString()}).eq('id',id);
+    const {error}=await cokitbase.rpc('update_admin_slot',{p_slot:id,p_is_available:!current.is_available});
     if(error)setMessage(error.message); else load();
   };
 
@@ -411,12 +415,13 @@ function AdminOrders({ onBack, onOpenOrder, onLogout }) {
   const [loading,setLoading]=useState(true);
   const load=async()=>{
     if(!cokitbaseReady){setOrders(ORDERS.map(o=>({...o,mobile:'+91 98XXXXXX42'})));setLoading(false);return;}
-    const {data,error}=await cokitbase.from('orders').select('*, order_items(*)').order('created_at',{ascending:false});
+    const {data,error}=await cokitbase.rpc('get_admin_orders');
     if(error) throw error;
-    setOrders((data||[]).map(o=>({
+    const rows=Array.isArray(data)?data:[];
+    setOrders(rows.map(o=>({
       id:o.order_code,name:o.customer_name,mobile:o.customer_mobile,
       meal:[...new Set((o.order_items||[]).map(i=>i.slot))].map(x=>x[0].toUpperCase()+x.slice(1)).join(' + ')||'Order',
-      items:(o.order_items||[]).map(i=>({name:i.item_name,quantity:Number(i.quantity||0),slot:i.slot})),
+      items:(o.order_items||[]).map(i=>({id:i.id,name:i.item_name,quantity:Number(i.quantity||0),slot:i.slot})),
       total:'₹'+Number(o.total_amount||0).toFixed(0),payment:o.payment_status,status:o.order_status,
       raw:o
     })));
@@ -462,12 +467,14 @@ function AdminDashboard({onOrders,onMenu,onExpenses,onAnalytics,onTestimonials,o
   const load=async()=>{
     if(!cokitbaseReady){setLoading(false);return;}
     try{
-      const [{data:o},{data:m},sl]=await Promise.all([
-        cokitbase.from('orders').select('*, order_items(*)').eq('order_date',today),
+      const [{data:o}, {data:m}, sl]=await Promise.all([
+        cokitbase.rpc('get_admin_orders'),
         cokitbase.from('menus').select('*').eq('service_date',today),
         getSlotAvailability()
       ]);
-      setOrders((o||[]).map(x=>({id:x.order_code,name:x.customer_name,meal:[...new Set((x.order_items||[]).map(i=>i.slot))].join(' + '),total:Number(x.total_amount||0),payment:x.payment_status,status:x.order_status,raw:x})));
+      const rows=Array.isArray(o)?o:[];
+      const todayRows=rows.filter(x=>x.order_date===today);
+      setOrders(todayRows.map(x=>({id:x.order_code,name:x.customer_name,meal:[...new Set((x.order_items||[]).map(i=>i.slot))].join(' + '),total:Number(x.total_amount||0),payment:x.payment_status,status:x.order_status,raw:x})));
       setMenu(m||[]); setSlots(sl||[]);
     }catch(err){console.error(err);}
     finally{setLoading(false);}
