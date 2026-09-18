@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CO-CO Kitchen</title>
+    <script>
+      (function () {
+        var path = window.location.pathname;
+        var base = '/Co-kitchen/';
+        if (path.indexOf(base) === 0) {
+          var rest = path.slice(base.length);
+          var target = base + '?redirect=' + encodeURIComponent('/' + rest) + window.location.search + window.location.hash;
+          window.location.replace(target);
+        }
+      })();
+    </script>
+  </head>
+  <body></body>
+</html>
