@@ -6,6 +6,7 @@ import {
   LogOut, AlertCircle, Search, Filter, ArrowLeft, Phone, MapPin, CalendarDays, CheckCircle2, CircleDollarSign
 } from 'lucide-react';
 import './styles.css';
+import { COCO_LOGO } from './logoData';
 import {
   cokitbaseReady, cokitbase, getSlotAvailability, getMenuForDate,
   getCustomerOrderStatus, subscribeToPortalChanges
@@ -50,13 +51,13 @@ function CustomerLanding() {
   const slotOpen=id=>slots.find(x=>x.id===id)?.is_available??true;
   const itemsFor=id=>menus.filter(x=>x.slot===id&&x.is_available&&x.remaining_quantity>0);
   const openSlot=id=>{if(!canStart())return;setSlot(id);setPage('menu')};
-  const canStart=()=>{if(!name.trim()){setError('Please enter your name.');return false}if(!/^\d{10}$/.test(mobile)){setError('Please enter a valid 10-digit mobile number.');return false}sessionStorage.setItem('cocoCustomerName',name.trim());sessionStorage.setItem('cocoCustomerMobile',mobile);setError('');return true};
+  const canStart=()=>{if(!name.trim()){setError('Please enter your name.');return false}if(!/^\d{10}$/.test(mobile)){setError('Enter a valid mobile number you silly Goose!');return false}sessionStorage.setItem('cocoCustomerName',name.trim());sessionStorage.setItem('cocoCustomerMobile',mobile);setError('');return true};
   const add=(item)=>setCart(c=>{const found=c.find(x=>x.id===item.id);if(found)return c.map(x=>x.id===item.id?{...x,quantity:Math.min(x.quantity+1,item.remaining_quantity)}:x);return [...c,{...item,quantity:1}]});
   const changeQty=(id,delta)=>setCart(c=>c.flatMap(x=>{if(x.id!==id)return [x];const menuItem=menus.find(m=>m.id===id);const q=Math.min(menuItem?.remaining_quantity||x.quantity,x.quantity+delta);return q>0?[{...x,quantity:q}]:[]}));
   const total=cart.reduce((sum,x)=>sum+x.quantity*Number(x.price),0);
   const checkout=()=>{if(!name.trim()){setError('Please enter your name.');setPage('home');return}setPage('checkout')};
   const placeOrder=async()=>{
-    if(!name.trim()||!/^[0-9]{10}$/.test(mobile)){setError('Enter your name and a valid 10-digit mobile number.');return}
+    if(!name.trim()||!/^[0-9]{10}$/.test(mobile)){setError('Enter a valid mobile number you silly Goose!');return}
     if(!cart.length)return;
     try{
       if(!cokitbaseReady){setOrder({order_code:'#CK-DEMO',customer_name:name,total_amount:total,payment_status:'PENDING'});setPage('payment');return}
@@ -82,7 +83,7 @@ function CustomerLanding() {
     setPage('verification');
   };
   useEffect(()=>{if(!order?.tracking_token||!cokitbaseReady)return;let alive=true;const refresh=async()=>{try{const data=await getCustomerOrderStatus(order.tracking_token);if(alive&&data)setOrder(o=>({...o,...data}))}catch(_e){}};refresh();const t=setInterval(refresh,5000);return()=>{alive=false;clearInterval(t)}},[order?.tracking_token]);
-  const home=<div className="landing-page"><div className="page-background" aria-hidden="true"/><div className="page-wash" aria-hidden="true"/><header className="site-header customer-site-header"><div className="customer-brand"><div className="logo-mark" aria-label="CO-CO Kitchen logo"><span>CO</span><span>CO</span></div><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></div><span className="since">Since 2024</span></header><main className="content"><section className="welcome-card"><div className="welcome-inner"><h1>Made with love.</h1><p className="welcome-subtitle">Homely Kerala flavours</p><div className="heart-rule"><span/><Heart size={29} strokeWidth={1.7}/><span/></div></div></section><section className="date-block"><span className="today-label">TODAY</span><strong>{formatDate(now).replace(/, 2026$/,'')}</strong><span className="live-time">{new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).format(now)}</span></section><div className="customer-details-fields"><label>YOUR NAME<input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter your name" autoComplete="name"/></label><label>MOBILE NUMBER<input value={mobile} onChange={e=>setMobile(e.target.value.replace(/\D/g,'').slice(0,10))} placeholder="10-digit mobile number" inputMode="numeric" autoComplete="tel"/></label></div><section className="meal-list">{['lunch','dinner'].map(id=>{const m=MEALS.find(x=>x.id===id);const open=slotOpen(id);const live=itemsFor(id);return <article className="meal-card" key={id}><div className="meal-card-top"/><div className="meal-heading"><span className="meal-kicker">{open?'PRE-ORDER '+m.title.toUpperCase():'CURRENTLY UNAVAILABLE'}</span><h2>Pre-order {m.title}</h2><p>{m.delivery}</p></div><div className="meal-items">{(live.length?live:m.items.map(x=>({item_name:x}))).map((x,i)=><React.Fragment key={x.item_name}><span>{x.item_name}</span>{i<(live.length?live:m.items).length-1&&<i>·</i>}</React.Fragment>)}</div><button className="start-button" disabled={!open} onClick={()=>openSlot(id)}>{open?'START PRE-ORDER':'NOT AVAILABLE'} {open&&<ArrowRight size={18}/>}</button></article>})}</section>{error&&<div className="login-error">{error}</div>}</main></div>;
+  const home=<div className="landing-page"><div className="page-background" aria-hidden="true"/><div className="page-wash" aria-hidden="true"/><header className="site-header customer-site-header"><div className="customer-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></div><span className="since">Since 2024</span></header><main className="content"><section className="welcome-card"><div className="welcome-inner"><h1>Made with love.</h1><p className="welcome-subtitle">Homely Kerala flavours</p><div className="heart-rule"><span/><Heart size={29} strokeWidth={1.7}/><span/></div></div></section><section className="date-block"><span className="today-label">TODAY</span><strong>{formatDate(now).replace(/, 2026$/,'')}</strong><span className="live-time">{new Intl.DateTimeFormat('en-IN',{hour:'numeric',minute:'2-digit',hour12:true}).format(now)}</span></section><div className="customer-details-fields"><label>YOUR NAME<input value={name} onChange={e=>setName(e.target.value)} placeholder="Enter your name" autoComplete="name"/></label><label>MOBILE NUMBER<input value={mobile} onChange={e=>setMobile(e.target.value.replace(/\D/g,'').slice(0,10))} placeholder="10-digit mobile number" inputMode="numeric" autoComplete="tel"/></label></div><section className="meal-list">{['lunch','dinner'].map(id=>{const m=MEALS.find(x=>x.id===id);const open=slotOpen(id);const live=itemsFor(id);return <article className="meal-card" key={id}><div className="meal-card-top"/><div className="meal-heading"><span className="meal-kicker">{open?'PRE-ORDER '+m.title.toUpperCase():'CURRENTLY UNAVAILABLE'}</span><h2>Pre-order {m.title}</h2><p>{m.delivery}</p></div><div className="meal-items">{(live.length?live:m.items.map(x=>({item_name:x}))).map((x,i)=><React.Fragment key={x.item_name}><span>{x.item_name}</span>{i<(live.length?live:m.items).length-1&&<i>·</i>}</React.Fragment>)}</div><button className="start-button" disabled={!open} onClick={()=>openSlot(id)}>{open?'START PRE-ORDER':'NOT AVAILABLE'} {open&&<ArrowRight size={18}/>}</button></article>})}</section>{error&&<div className="login-error">{error}</div>}</main></div>;
   if(page==='home')return home;
   if(page==='menu')return <CustomerMenu slot={slot} items={itemsFor(slot)} cart={cart} add={add} changeQty={changeQty} onBack={()=>setPage('home')} onSwitchSlot={(next)=>{setError('');setSlot(next);setPage('menu')}} onCart={checkout}/>;
   if(page==='checkout')return <CustomerCheckout name={name} mobile={mobile} setMobile={setMobile} cart={cart} total={total} onBack={()=>setPage('menu')} onPlace={placeOrder} error={error}/>;
@@ -105,7 +106,7 @@ function CustomerPayment({order,total,onPaid}) {
 
 function CustomerVerification({order,onHome}) {
   const verified=order?.payment_status==='VERIFIED';
-  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></header><main className="customer-content centered"><div className="verification-logo"><span className="logo-mark large"><span>CO</span><span>CO</span></span><strong>CO-CO KITCHEN</strong></div><span className="admin-eyebrow">{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</span><h1>{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</h1><p>Thank you, {order?.customer_name||'there'}.</p><div className="payment-status-badge">{verified?'VERIFIED':'BEING VERIFIED'}</div><p className="verification-copy">{verified?'Your payment is verified.':'Your payment is being verified, in the meantime tell us your fav dish of Co-co'}</p><button className="feedback-button" type="button" onClick={()=>alert('Feedback page coming next.')}>SUGGESTIONS & TESTIMONIALS <ArrowRight size={17}/></button><button className="start-button secondary-customer-action" onClick={onHome}>BACK TO HOME</button></main></div>;
+  return <div className="customer-flow"><header className="site-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></header><main className="customer-content centered"><div className="verification-logo"><img className="verification-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /></div><span className="admin-eyebrow">{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</span><h1>{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</h1><p>Thank you, {order?.customer_name||'there'}.</p><div className="payment-status-badge">{verified?'VERIFIED':'BEING VERIFIED'}</div><p className="verification-copy">{verified?'Your payment is verified.':'Your payment is being verified, in the meantime tell us your fav dish of Co-co'}</p><button className="feedback-button" type="button" onClick={()=>alert('Feedback page coming next.')}>SUGGESTIONS & TESTIMONIALS <ArrowRight size={17}/></button><button className="start-button secondary-customer-action" onClick={onHome}>BACK TO HOME</button></main></div>;
 }
 
 function AdminLogin({ onLogin }) {
@@ -127,7 +128,7 @@ function AdminLogin({ onLogin }) {
   };
   return <div className="admin-shell login-shell">
     <div className="admin-login-card">
-      <div className="admin-mark"><Utensils size={23}/></div>
+      <div className="admin-mark logo-admin-mark"><img src={COCO_LOGO} alt="CO-CO Kitchen" /></div>
       <span className="admin-eyebrow">CO-CO KITCHEN</span>
       <h1>Admin Portal</h1>
       <p className="admin-lead">Kitchen & order management</p>
@@ -192,100 +193,91 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
   </div>;
 }
 function AdminMenu({ onBack, onLogout }) {
-  const [serviceDate, setServiceDate] = useState(new Date().toISOString().slice(0,10));
-  const [slot,setSlot] = useState('lunch');
-  const [items,setItems] = useState([]);
-  const [slots,setSlots] = useState([]);
-  const [saving,setSaving] = useState(false);
-  const [message,setMessage] = useState('');
-  const dateLabel = new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'long',year:'numeric'}).format(new Date(serviceDate+'T00:00:00')).toUpperCase();
+  const [serviceDate,setServiceDate]=useState(new Date().toISOString().slice(0,10));
+  const [slot,setSlot]=useState('lunch');
+  const [items,setItems]=useState([]);
+  const [slots,setSlots]=useState([]);
+  const [saving,setSaving]=useState(false);
+  const [message,setMessage]=useState('');
+  const dateLabel=new Intl.DateTimeFormat('en-IN',{day:'2-digit',month:'long',year:'numeric'}).format(new Date(serviceDate+'T00:00:00')).toUpperCase();
 
-  const load = async () => {
-    if (!cokitbaseReady) {
+  const load=async()=>{
+    if(!cokitbaseReady){
       setSlots([{id:'lunch',is_available:true},{id:'dinner',is_available:true}]);
       setItems(slot==='lunch'
-        ? [{name:'Pothichoru — Veg',price:'90',qty:'30',remaining:'30',available:true},{name:'Pothichoru — Egg',price:'100',qty:'30',remaining:'30',available:true},{name:'Pothichoru — Chicken',price:'130',qty:'30',remaining:'30',available:true}]
-        : [{name:'Appam',price:'80',qty:'30',remaining:'30',available:true},{name:'Veg stew',price:'70',qty:'30',remaining:'30',available:true},{name:'Chicken stew',price:'100',qty:'30',remaining:'30',available:true},{name:'Chiratta Puttu',price:'80',qty:'30',remaining:'30',available:true},{name:'Kadala curry',price:'70',qty:'30',remaining:'30',available:true},{name:'Chicken curry',price:'100',qty:'30',remaining:'30',available:true}]);
+        ? [{name:'Pothichoru — Veg',price:'90',qty:'30',remaining:'30',available:true,description:'Traditional Kerala meal in a leaf'}]
+        : [{name:'Appam',price:'80',qty:'30',remaining:'30',available:true,description:'Soft Kerala appam'}]);
       return;
     }
-    const [menuData, slotData] = await Promise.all([getMenuForDate(serviceDate), getSlotAvailability()]);
-    setSlots(slotData || []);
-    setItems((menuData || []).filter(x=>x.slot===slot).map(x=>({
+    const [menuData,slotData]=await Promise.all([getMenuForDate(serviceDate),getSlotAvailability()]);
+    setSlots(slotData||[]);
+    setItems((menuData||[]).filter(x=>x.slot===slot).map(x=>({
       id:x.id,name:x.item_name,price:String(x.price),qty:String(x.total_quantity),
-      remaining:String(x.remaining_quantity),available:x.is_available
+      remaining:String(x.remaining_quantity),available:x.is_available,
+      description:x.description||''
     })));
   };
-
-  useEffect(()=>{ load().catch(err=>setMessage(err.message||'Could not load menu.')); },[serviceDate,slot]);
+  useEffect(()=>{load().catch(e=>setMessage(e.message||'Could not load menu.'))},[serviceDate,slot]);
 
   const update=(i,key,val)=>setItems(items.map((x,n)=>n===i?{...x,[key]:val}:x));
-  const add=()=>setItems([...items,{name:'',price:'',qty:'30',remaining:'30',available:true}]);
+  const add=()=>setItems([...items,{name:'',price:'',qty:'30',remaining:'30',available:true,description:''}]);
+  const remove=(i)=>setItems(items.filter((_,n)=>n!==i));
 
-  const save = async () => {
-    setSaving(true); setMessage('');
-    try {
-      if (!cokitbaseReady) { setMessage('Saved in prototype mode. Connect Cokitbase to publish to customers.'); return; }
-      for (const item of items) {
-        const total = Math.max(0, Number(item.qty)||0);
-        const remaining = Math.min(total, Math.max(0, Number(item.remaining ?? total)||0));
-        const payload = {
-          service_date: serviceDate, slot, item_name:item.name.trim(),
-          price:Math.max(0,Number(item.price)||0), total_quantity:total,
-          remaining_quantity:remaining, is_available:Boolean(item.available), updated_at:new Date().toISOString()
-        };
-        if (!payload.item_name) continue;
-        if (item.id) {
-          const {error}=await cokitbase.from('menus').update(payload).eq('id',item.id);
-          if(error) throw error;
-        } else {
-          const {error}=await cokitbase.from('menus').insert(payload);
-          if(error) throw error;
-        }
+  const save=async()=>{
+    setSaving(true);setMessage('');
+    try{
+      if(!cokitbaseReady){setMessage('Saved in design mode. Connect Cokitbase to publish live menu.');return}
+      for(const item of items){
+        if(!item.name.trim()) continue;
+        const total=Math.max(0,Number(item.qty)||0);
+        const remaining=Math.min(total,Math.max(0,Number(item.remaining ?? total)||0));
+        const payload={service_date:serviceDate,slot,item_name:item.name.trim(),price:Math.max(0,Number(item.price)||0),total_quantity:total,remaining_quantity:remaining,is_available:Boolean(item.available),description:item.description?.trim()||null,updated_at:new Date().toISOString()};
+        if(item.id){const {error}=await cokitbase.from('menus').update(payload).eq('id',item.id);if(error)throw error}
+        else{const {error}=await cokitbase.from('menus').insert(payload);if(error)throw error}
       }
       await load();
-      setMessage('Menu published. Customer portal will receive the updated menu and availability.');
-    } catch(err) {
-      setMessage(err.message || 'Could not save menu.');
-    } finally { setSaving(false); }
+      setMessage('Menu and rates published successfully.');
+    }catch(e){setMessage(e.message||'Could not save menu.')}
+    finally{setSaving(false)}
   };
 
-  const toggleSlot = async (id) => {
-    const current=slots.find(x=>x.id===id);
-    if(!cokitbaseReady || !current) return;
+  const toggleSlot=async(id)=>{
+    const current=slots.find(x=>x.id===id); if(!current)return;
+    if(!cokitbaseReady){setSlots(slots.map(x=>x.id===id?{...x,is_available:!x.is_available}:x));return}
     const {error}=await cokitbase.from('service_slots').update({is_available:!current.is_available,updated_at:new Date().toISOString()}).eq('id',id);
-    if(error) setMessage(error.message); else load();
+    if(error)setMessage(error.message); else load();
   };
 
   return <div className="admin-shell dashboard-shell">
-    <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
+    <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon logo-admin-header"><img src={COCO_LOGO} alt="CO-CO Kitchen" /></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
     <main className="dashboard-content menu-page">
       <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> DASHBOARD</button>
-      <section className="orders-page-intro"><div><span className="admin-eyebrow">MENU & SERVICE CONTROL</span><h1>Menu Management.</h1><p>Control which slots are open and publish the menu customers see.</p></div><div className="menu-date-card"><span>SERVICE DATE</span><input type="date" value={serviceDate} onChange={e=>setServiceDate(e.target.value)}/><strong>{dateLabel}</strong></div></section>
-
+      <section className="orders-page-intro"><div><span className="admin-eyebrow">MENU & RATE CONTROL</span><h1>Menu Management.</h1><p>Add food items, set rates, capacity and availability for customers.</p></div><div className="menu-date-card"><span>SERVICE DATE</span><input type="date" value={serviceDate} onChange={e=>setServiceDate(e.target.value)}/><strong>{dateLabel}</strong></div></section>
       <section className="dashboard-panel service-control-panel">
         <div className="panel-heading"><div><span className="panel-kicker">CUSTOMER PORTAL</span><h2>Service Availability</h2></div><span className="menu-state">LIVE</span></div>
-        <div className="service-toggle-grid">{['lunch','dinner'].map(id=>{const x=slots.find(s=>s.id===id)||{is_available:true}; return <div className="service-toggle-card" key={id}><div><strong>{id.toUpperCase()}</strong><span>{x.is_available?'Customers can order this slot':'Hidden from customers'}</span></div><button className={'availability-toggle '+(x.is_available?'on':'')} onClick={()=>toggleSlot(id)}><span/></button></div>})}</div>
+        <div className="service-toggle-grid">{['lunch','dinner'].map(id=>{const x=slots.find(s=>s.id===id)||{is_available:true};return <div className="service-toggle-card" key={id}><div><strong>{id.toUpperCase()}</strong><span>{x.is_available?'Customers can order this slot':'Hidden from customers'}</span></div><button className={'availability-toggle '+(x.is_available?'on':'')} onClick={()=>toggleSlot(id)}><span/></button></div>})}</div>
       </section>
-
       <section className="dashboard-panel menu-editor">
-        <div className="menu-slot-tabs"><button className={slot==='lunch'?'active':''} onClick={()=>setSlot('lunch')}>LUNCH</button><button className={slot==='dinner'?'active':''} onClick={()=>setSlot('dinner')}>DINNER</button></div>
-        <div className="panel-heading"><div><span className="panel-kicker">MENU FOR {dateLabel}</span><h2>{slot.toUpperCase()} Menu</h2></div><span className="menu-state">LIVE DATA</span></div>
-        <div className="menu-fields menu-head"><span>FOOD ITEM</span><span>PRICE</span><span>CAPACITY</span><span>REMAINING</span><span>AVAILABLE</span><span></span></div>
-        <div className="menu-item-list">{items.map((item,i)=><div className="menu-edit-row" key={item.id||i}>
-          <input value={item.name} onChange={e=>update(i,'name',e.target.value)} placeholder="Food item name"/>
-          <div className="price-input"><span>₹</span><input value={item.price} onChange={e=>update(i,'price',e.target.value)} inputMode="decimal"/></div>
-          <input value={item.qty} onChange={e=>update(i,'qty',e.target.value)} inputMode="numeric" placeholder="Qty"/>
-          <input value={item.remaining} onChange={e=>update(i,'remaining',e.target.value)} inputMode="numeric" placeholder="Remaining"/>
-          <input type="checkbox" checked={item.available} onChange={e=>update(i,'available',e.target.checked)}/>
-          <button className="remove-item" onClick={()=>setItems(items.filter((_,n)=>n!==i))}>REMOVE</button>
-        </div>)}</div>
+        <div className="menu-slot-tabs"><button className={slot==='lunch'?'active':''} onClick={()=>setSlot('lunch')}>LUNCH MENU</button><button className={slot==='dinner'?'active':''} onClick={()=>setSlot('dinner')}>DINNER MENU</button></div>
+        <div className="panel-heading"><div><span className="panel-kicker">ADD / EDIT MENU ITEM</span><h2>{slot==='lunch'?'Lunch':'Dinner'} Menu & Rates</h2></div><span className="menu-state">LIVE DATA</span></div>
+        <div className="menu-card-list">{items.map((item,i)=><article className="menu-item-editor-card" key={item.id||i}>
+          <div className="menu-item-editor-fields">
+            <label>ITEM NAME<input value={item.name} onChange={e=>update(i,'name',e.target.value)} placeholder="e.g. Pothichoru — Veg"/></label>
+            <label>RATE (₹)<input value={item.price} onChange={e=>update(i,'price',e.target.value)} inputMode="decimal" placeholder="90"/></label>
+            <label>MAX QUANTITY<input value={item.qty} onChange={e=>update(i,'qty',e.target.value)} inputMode="numeric" placeholder="30"/></label>
+            <label>REMAINING<input value={item.remaining} onChange={e=>update(i,'remaining',e.target.value)} inputMode="numeric" placeholder="30"/></label>
+            <label className="menu-description-field">DESCRIPTION (OPTIONAL)<input value={item.description} onChange={e=>update(i,'description',e.target.value)} placeholder="Traditional Kerala meal in a leaf"/></label>
+          </div>
+          <div className="menu-item-editor-bottom"><label className="available-toggle-label"><input type="checkbox" checked={item.available} onChange={e=>update(i,'available',e.target.checked)}/><span className="availability-check"/><strong>AVAILABLE</strong></label><button className="remove-item" onClick={()=>remove(i)}>REMOVE</button></div>
+        </article>)}</div>
         <button className="add-item-button" onClick={add}>+ ADD FOOD ITEM</button>
         {message&&<div className="login-error"><CheckCircle2 size={16}/>{message}</div>}
-        <div className="menu-editor-footer"><span>Capacity and remaining quantity flow directly to the customer portal after publishing.</span><button className="admin-primary publish-button" disabled={saving} onClick={save}>{saving?'SAVING…':'PUBLISH '+slot.toUpperCase()+' MENU'} <ArrowRight size={17}/></button></div>
+        <div className="menu-editor-footer"><span>Customers will see the published food item, rate and availability.</span><button className="admin-primary publish-button" disabled={saving} onClick={save}>{saving?'PUBLISHING…':'PUBLISH MENU & RATES'} <ArrowRight size={17}/></button></div>
       </section>
     </main>
   </div>;
-}function AdminOrders({ onBack, onOpenOrder, onLogout }) {
+}
+function AdminOrders({ onBack, onOpenOrder, onLogout }) {
   const [query,setQuery]=useState(''); const [filter,setFilter]=useState('ALL');
   const [orders,setOrders]=useState([]);
   const [loading,setLoading]=useState(true);
