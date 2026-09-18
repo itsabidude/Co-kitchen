@@ -722,3 +722,9 @@ button { font: inherit; cursor: pointer; }
  .customer-item{grid-template-columns:62px minmax(0,1fr) auto!important}
  .customer-item .quantity-control{grid-column:2/-1;justify-self:end}
 }
+
+.theme-0 .page-wash{background:linear-gradient(135deg,rgba(247,243,231,.68),rgba(225,240,220,.72),rgba(250,232,206,.82))}
+.theme-1 .page-wash{background:linear-gradient(135deg,rgba(250,235,213,.72),rgba(239,223,238,.7),rgba(225,239,231,.78))}
+.theme-2 .page-wash{background:linear-gradient(135deg,rgba(232,242,229,.72),rgba(249,231,198,.78),rgba(233,224,244,.7))}
+.theme-3 .page-wash{background:linear-gradient(135deg,rgba(238,229,211,.72),rgba(220,237,239,.76),rgba(246,226,221,.72))}
+.theme-4 .page-wash{background:linear-gradient(135deg,rgba(245,229,229,.7),rgba(227,238,215,.75),rgba(240,231,204,.78))}
