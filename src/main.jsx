@@ -190,20 +190,53 @@ function StatCard({ icon: Icon, label, value, detail, alert }) {
 }
 
 function AdminOrderDetails({ order, onBack, onLogout }) {
+  const [liveOrder, setLiveOrder] = useState(order);
   const [payment, setPayment] = useState(order.payment);
+  useEffect(()=>{
+    let alive=true;
+    const refresh=async()=>{
+      if(!cokitbaseReady||!order.raw?.id)return;
+      try{
+        const {data,error}=await cokitbase.from('orders').select('*, order_items(*)').eq('id',order.raw.id).single();
+        if(error)throw error;
+        if(alive&&data){
+          const fresh={
+            ...order,
+            id:data.order_code,
+            name:data.customer_name,
+            mobile:data.customer_mobile,
+            total:'₹'+Number(data.total_amount||0).toFixed(0),
+            payment:data.payment_status,
+            status:data.order_status,
+            raw:data
+          };
+          setLiveOrder(fresh);
+          setPayment(data.payment_status||'PENDING');
+        }
+      }catch(_e){}
+    };
+    refresh();
+    return()=>{alive=false};
+  },[order.raw?.id]);
   const [status, setStatus] = useState(order.status);
+  useEffect(()=>{ if(liveOrder?.status) setStatus(liveOrder.status); },[liveOrder?.status]);
   const [saving,setSaving]=useState(false);
   const verified = payment === 'VERIFIED';
-  const items=order.raw?.order_items||[];
+  const currentOrder=liveOrder||order;
+  const items=currentOrder.raw?.order_items||[];
   const verifyPayment=async()=>{
     if(!cokitbaseReady||!order.raw?.id){setPayment('VERIFIED');return;}
     setSaving(true);
     try{
       const now=new Date().toISOString();
-      const {error:e1}=await cokitbase.from('orders').update({payment_status:'VERIFIED',updated_at:now}).eq('id',order.raw.id);
+      const {error:e1}=await cokitbase.from('orders').update({payment_status:'VERIFIED',updated_at:now}).eq('id',currentOrder.raw.id);
       if(e1) throw e1;
-      const {error:e2}=await cokitbase.from('payments').update({status:'VERIFIED',verified_at:now,updated_at:now}).eq('order_id',order.raw.id);
-      if(e2) throw e2;
+      // Keep the payment record in sync when one exists; the order's payment_status
+      // remains the canonical value used when reopening the customer.
+      const {error:e2}=await cokitbase.from('payments').update({status:'VERIFIED',verified_at:now,updated_at:now}).eq('order_id',currentOrder.raw.id);
+      if(e2) console.warn('Payment record sync warning:',e2.message);
+      const fresh={...currentOrder,payment:'VERIFIED',raw:{...currentOrder.raw,payment_status:'VERIFIED'}};
+      setLiveOrder(fresh);
       setPayment('VERIFIED');
     }catch(err){alert(err.message||'Could not verify payment.');}
     finally{setSaving(false);}
@@ -222,12 +255,12 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
     <header className="admin-header"><div className="admin-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="admin-brand-copy"><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
     <main className="dashboard-content order-detail-page">
       <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> ALL ORDERS</button>
-      <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{order.id}</h1><p>{order.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
+      <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{currentOrder.id}</h1><p>{currentOrder.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
       <section className="detail-grid">
-        <div className="dashboard-panel detail-panel"><div className="panel-heading"><div><span className="panel-kicker">CUSTOMER</span><h2>{order.name}</h2></div></div><div className="customer-details"><div><Phone size={16}/><span>{order.mobile||'Mobile not provided'}</span></div><div><MapPin size={16}/><span>{order.raw?.delivery_location||'Location not provided'}</span></div><div><CalendarDays size={16}/><span>{order.raw?.order_date||formatDate(new Date())}</span></div></div></div>
-        <div className="dashboard-panel payment-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">PAYMENT</span><h2>{order.total}</h2></div><b className={'pill '+payment.toLowerCase()}>{payment}</b></div><div className="payment-detail-body"><div className="payment-method"><CircleDollarSign size={18}/><div><strong>UPI PAYMENT</strong><span>{payment==='CUSTOMER_MARKED_PAID'?'Customer marked payment as completed':'Payment status from Cokitbase'}</span></div></div>{!verified&&<button className="verify-payment-button" disabled={saving} onClick={verifyPayment}><CheckCircle2 size={17}/> {saving?'VERIFYING…':'VERIFY PAYMENT'}</button>}{verified&&<div className="verified-note"><CheckCircle2 size={17}/> PAYMENT VERIFIED — CUSTOMER WILL SEE THIS UPDATE</div>}</div></div>
+        <div className="dashboard-panel detail-panel"><div className="panel-heading"><div><span className="panel-kicker">CUSTOMER</span><h2>{currentOrder.name}</h2></div></div><div className="customer-details"><div><Phone size={16}/><span>{currentOrder.mobile||'Mobile not provided'}</span></div><div><MapPin size={16}/><span>{currentOrder.raw?.delivery_location||'Location not provided'}</span></div><div><CalendarDays size={16}/><span>{currentOrder.raw?.order_date||formatDate(new Date())}</span></div></div></div>
+        <div className="dashboard-panel payment-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">PAYMENT</span><h2>{currentOrder.total}</h2></div><b className={'pill '+payment.toLowerCase()}>{payment}</b></div><div className="payment-detail-body"><div className="payment-method"><CircleDollarSign size={18}/><div><strong>UPI PAYMENT</strong><span>{payment==='CUSTOMER_MARKED_PAID'?'Customer marked payment as completed':'Payment status from Cokitbase'}</span></div></div>{!verified&&<button className="verify-payment-button" disabled={saving} onClick={verifyPayment}><CheckCircle2 size={17}/> {saving?'VERIFYING…':'VERIFY PAYMENT'}</button>}{verified&&<div className="verified-note"><CheckCircle2 size={17}/> PAYMENT VERIFIED — CUSTOMER WILL SEE THIS UPDATE</div>}</div></div>
       </section>
-      <section className="dashboard-panel items-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">ORDER SUMMARY</span><h2>Items Ordered</h2></div><span className="meal-label">{order.meal}</span></div><div className="detail-items">{items.length?items.map(i=><div key={i.id}><span>{i.item_name}</span><strong>{i.quantity} × ₹{Number(i.unit_price).toFixed(0)}</strong></div>):<div><span>Order items will appear here</span><strong>{order.total}</strong></div>}</div><div className="detail-total"><span>ORDER TOTAL</span><strong>{order.total}</strong></div></section>
+      <section className="dashboard-panel items-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">ORDER SUMMARY</span><h2>Items Ordered</h2></div><span className="meal-label">{currentOrder.meal}</span></div><div className="detail-items">{items.length?items.map(i=><div key={i.id}><span>{i.item_name}</span><strong>{i.quantity} × ₹{Number(i.unit_price).toFixed(0)}</strong></div>):<div><span>Order items will appear here</span><strong>{currentOrder.total}</strong></div>}</div><div className="detail-total"><span>ORDER TOTAL</span><strong>{currentOrder.total}</strong></div></section>
       <section className="dashboard-panel status-detail-panel"><div className="panel-heading"><div><span className="panel-kicker">KITCHEN WORKFLOW</span><h2>Order Status</h2></div></div><div className="workflow">{['PLACED','PREPARING','READY','OUT_FOR_DELIVERY','DELIVERED'].map((x,i)=><React.Fragment key={x}>{i>0&&<ChevronRight size={15}/>}<button className={status===x?'current':''} onClick={()=>setStatus(x)}>{x.replaceAll('_',' ')}</button></React.Fragment>)}</div></section>
       <div className="admin-detail-actions"><button className="secondary-detail-button" onClick={onBack}>BACK TO ORDERS</button><button className="admin-primary detail-save-button" disabled={saving} onClick={saveStatus}>{saving?'SAVING…':'SAVE ORDER UPDATE'} <ArrowRight size={17}/></button></div>
     </main>
@@ -298,7 +331,7 @@ function AdminMenu({ onBack, onLogout }) {
         <div className="panel-heading"><div><span className="panel-kicker">CUSTOMER PORTAL</span><h2>Service Availability</h2></div><span className="menu-state">LIVE</span></div>
         <div className="service-toggle-grid">{['lunch','dinner'].map(id=>{const x=slots.find(s=>s.id===id)||{is_available:true};return <div className="service-toggle-card" key={id}><div><strong>{id.toUpperCase()}</strong><span>{x.is_available?'Customers can order this slot':'Hidden from customers'}</span></div><button className={'availability-toggle '+(x.is_available?'on':'')} onClick={()=>toggleSlot(id)}><span/></button></div>})}</div>
       </section>
-      <section className="dashboard-panel menu-editor"><div className="menu-rate-intro"><span className="panel-kicker">MENU & CUSTOMER FEEDBACK</span><strong>Provide today's menu, set rates, and capture item feedback.</strong></div>
+      <section className="dashboard-panel menu-editor"><div className="menu-rate-intro"><div><span className="panel-kicker">MENU & RATE CONTROL</span><strong>Build the menu customers will see</strong><small>Set the item name, rate, quantity and availability for this service date.</small></div><span className="menu-live-badge">LIVE MENU</span></div>
         <div className="menu-slot-tabs"><button className={slot==='lunch'?'active':''} onClick={()=>setSlot('lunch')}>LUNCH MENU</button><button className={slot==='dinner'?'active':''} onClick={()=>setSlot('dinner')}>DINNER MENU</button></div>
         <div className="panel-heading"><div><span className="panel-kicker">ADD / EDIT MENU ITEM</span><h2>{slot==='lunch'?'Lunch':'Dinner'} Menu & Rates</h2></div><span className="menu-state">LIVE DATA</span></div>
         <div className="menu-card-list">{items.map((item,i)=><article className="menu-item-editor-card" key={item.id||i}>
