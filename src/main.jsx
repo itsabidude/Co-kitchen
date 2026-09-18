@@ -34,12 +34,20 @@ function formatDate(date) {
   return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }).format(date).toUpperCase();
 }
 
+function safeSessionGet(key, fallback = '') {
+  try { return sessionStorage.getItem(key) || fallback; } catch { return fallback; }
+}
+
+function safeSessionSet(key, value) {
+  try { sessionStorage.setItem(key, value); } catch {}
+}
+
 function CustomerLanding() {
   const [now,setNow]=useState(new Date());
   const [slots,setSlots]=useState([{id:'lunch',is_available:true},{id:'dinner',is_available:true}]);
   const [menus,setMenus]=useState([]);
-  const [name,setName]=useState(sessionStorage.getItem('cocoCustomerName')||'');
-  const [mobile,setMobile]=useState(sessionStorage.getItem('cocoCustomerMobile')||'');
+  const [name,setName]=useState(safeSessionGet('cocoCustomerName'));
+  const [mobile,setMobile]=useState(safeSessionGet('cocoCustomerMobile'));
   const [page,setPage]=useState('home');
   const [slot,setSlot]=useState(null);
   const [cart,setCart]=useState([]);
@@ -50,12 +58,12 @@ function CustomerLanding() {
   useEffect(()=>{const t=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(t)},[]);
   const today=new Date().toISOString().slice(0,10);
   const load=async()=>{if(!cokitbaseReady)return;try{const [s,m]=await Promise.all([getSlotAvailability(),getMenuForDate(today)]);setSlots(s||[]);setMenus(m||[])}catch(e){setError(e.message||'Could not load today’s menu.')}};
-  useEffect(()=>{if(!cokitbaseReady)return;const loadTestimonials=async()=>{const {data}=await cokitbase.from('testimonials').select('*').eq('is_approved',true).eq('is_featured',true).order('created_at',{ascending:false}).limit(8);setTestimonials(data||[])};loadTestimonials();const unsub=subscribeToPortalChanges(loadTestimonials);return unsub},[]);
+  useEffect(()=>{if(!cokitbaseReady)return;const loadTestimonials=async()=>{try{const {data}=await cokitbase.from('testimonials').select('*').eq('is_approved',true).eq('is_featured',true).order('created_at',{ascending:false}).limit(8);setTestimonials(data||[])}catch(_e){setTestimonials([])}};loadTestimonials();const unsub=subscribeToPortalChanges(loadTestimonials);return unsub},[]);
   useEffect(()=>{load();const unsub=subscribeToPortalChanges(load);return unsub},[]);
   const slotOpen=id=>slots.find(x=>x.id===id)?.is_available??true;
   const itemsFor=id=>menus.filter(x=>x.slot===id&&x.is_available&&x.remaining_quantity>0);
   const openSlot=id=>{if(!canStart())return;setSlot(id);setPage('menu')};
-  const canStart=()=>{if(!name.trim()){setError('Enter your name, you silly Stark');return false}if(!/^\d{10}$/.test(mobile)){setError('Enter a valid mobile number you silly Goose!');return false}sessionStorage.setItem('cocoCustomerName',name.trim());sessionStorage.setItem('cocoCustomerMobile',mobile);setError('');return true};
+  const canStart=()=>{if(!name.trim()){setError('Enter your name, you silly Stark');return false}if(!/^\d{10}$/.test(mobile)){setError('Enter a valid mobile number you silly Goose!');return false}safeSessionSet('cocoCustomerName',name.trim());safeSessionSet('cocoCustomerMobile',mobile);setError('');return true};
   const add=(item)=>setCart(c=>{const found=c.find(x=>x.id===item.id);if(found)return c.map(x=>x.id===item.id?{...x,quantity:Math.min(x.quantity+1,item.remaining_quantity)}:x);return [...c,{...item,quantity:1}]});
   const changeQty=(id,delta)=>setCart(c=>c.flatMap(x=>{if(x.id!==id)return [x];const menuItem=menus.find(m=>m.id===id);const q=Math.min(menuItem?.remaining_quantity||x.quantity,x.quantity+delta);return q>0?[{...x,quantity:q}]:[]}));
   const total=cart.reduce((sum,x)=>sum+x.quantity*Number(x.price),0);
@@ -71,14 +79,14 @@ function CustomerLanding() {
       });
       if(e)throw e;
       if(!o?.id)throw new Error('Order could not be created.');
-      sessionStorage.setItem('cocoOrderToken',o.tracking_token);
+      safeSessionSet('cocoOrderToken',o.tracking_token);
       setOrder(o);setPage('payment');
     }catch(e){setError(e.message||'Could not place your order.')}
   };
   const markPaid=async()=>{
     if(!order)return;
     if(cokitbaseReady){
-      const token=sessionStorage.getItem('cocoOrderToken');
+      const token=safeSessionGet('cocoOrderToken');
       if(!token){setError('Order session expired.');return}
       const {error:e}=await cokitbase.rpc('mark_payment_completed',{p_tracking_token:token});
       if(e){setError(e.message);return}
@@ -459,9 +467,36 @@ function AdminApp() {
   return <AdminDashboard onOrders={()=>setView('orders')} onMenu={()=>setView('menu')} onExpenses={()=>setView('expenses')} onAnalytics={()=>setView('analytics')} onTestimonials={()=>setView('testimonials')} onLogout={logout}/>;
 }
 
+
+class CustomerErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error, info) {
+    console.error('Customer portal render error', error, info);
+  }
+  render() {
+    if (this.state.error) {
+      return <main style={{minHeight:'100vh',display:'grid',placeItems:'center',padding:'24px',background:'#f7f0e4',color:'#24352a',fontFamily:'Georgia,serif',textAlign:'center'}}>
+        <div style={{maxWidth:'420px'}}>
+          <div style={{fontSize:'12px',letterSpacing:'3px',fontWeight:700,marginBottom:'14px'}}>CO-CO KITCHEN</div>
+          <h1 style={{fontSize:'34px',margin:'0 0 12px'}}>We’re refreshing the kitchen.</h1>
+          <p style={{lineHeight:1.7,margin:'0 0 24px'}}>The customer portal hit a temporary loading issue. Please refresh this page to continue.</p>
+          <button onClick={()=>window.location.reload()} style={{border:0,padding:'14px 20px',borderRadius:'999px',fontWeight:700,cursor:'pointer'}}>REFRESH PORTAL</button>
+        </div>
+      </main>;
+    }
+    return this.props.children;
+  }
+}
+
 function App() {
   const isAdmin=window.location.hash.toLowerCase().replace('#','')==='admin' || new URLSearchParams(window.location.search).has('admin');
-  return isAdmin ? <AdminApp/> : <CustomerLanding/>;
+  return isAdmin ? <AdminApp/> : <CustomerErrorBoundary><CustomerLanding/></CustomerErrorBoundary>;
 }
 
 createRoot(document.getElementById('root')).render(<App/>);
