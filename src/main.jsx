@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import {
   ArrowRight, Heart, LockKeyhole, Utensils, ClipboardList,
   CreditCard, Clock3, PackageCheck, TrendingUp, ChevronRight,
-  LogOut, AlertCircle
+  LogOut, AlertCircle, Search, Filter, ArrowLeft
 } from 'lucide-react';
 import './styles.css';
 
@@ -70,7 +70,22 @@ function StatCard({ icon: Icon, label, value, detail, alert }) {
   return <div className={'stat-card '+(alert?'stat-alert':'')}><div className="stat-icon"><Icon size={21}/></div><div className="stat-copy"><span>{label}</span><strong>{value}</strong><small>{detail}</small></div></div>;
 }
 
-function AdminDashboard({ onLogout }) {
+function AdminOrders({ onBack, onLogout }) {
+  const [query, setQuery] = useState('');
+  const [filter, setFilter] = useState('ALL');
+  const filtered = ORDERS.filter(o => (filter==='ALL' || o.status===filter || o.payment===filter) && (o.id+o.name+o.meal).toLowerCase().includes(query.toLowerCase()));
+  return <div className="admin-shell dashboard-shell">
+    <header className="admin-header"><div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
+    <main className="dashboard-content orders-page">
+      <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> DASHBOARD</button>
+      <section className="orders-page-intro"><div><span className="admin-eyebrow">ORDER MANAGEMENT</span><h1>Today's Orders.</h1><p>Review and manage every customer order for today.</p></div><div className="orders-count"><strong>{filtered.length}</strong><span>ORDERS SHOWN</span></div></section>
+      <section className="orders-toolbar"><div className="search-box"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search order ID, customer or meal"/></div><div className="filter-wrap"><Filter size={15}/><select value={filter} onChange={e=>setFilter(e.target.value)}><option value="ALL">ALL ORDERS</option><option value="PENDING">PAYMENT PENDING</option><option value="VERIFIED">PAYMENT VERIFIED</option><option value="PREPARING">PREPARING</option><option value="READY">READY</option><option value="PLACED">PLACED</option></select></div></section>
+      <section className="dashboard-panel orders-page-panel"><div className="orders-table"><div className="table-row table-head"><span>ORDER</span><span>CUSTOMER</span><span>MEAL</span><span>TOTAL</span><span>PAYMENT</span><span>STATUS</span></div>{filtered.map(o=><div className="table-row order-click" key={o.id} onClick={()=>alert('Order details screen coming next.')}><span className="order-id">{o.id}</span><span><strong className="customer-name">{o.name}</strong><small className="customer-phone">+91 98XXXXXX42</small></span><span>{o.meal}</span><span className="amount">{o.total}</span><span><b className={'pill '+o.payment.toLowerCase()}>{o.payment}</b></span><span><b className={'pill '+o.status.toLowerCase()}>{o.status}</b></span></div>)}{filtered.length===0&&<div className="empty-orders">No orders match your search or filter.</div>}</div></section>
+    </main>
+  </div>;
+}
+
+function AdminDashboard({ onBack, onOrders, onLogout }) {
   return <div className="admin-shell dashboard-shell">
     <header className="admin-header">
       <div className="admin-brand"><div className="admin-brand-icon"><Utensils size={19}/></div><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div>
@@ -102,7 +117,7 @@ function AdminDashboard({ onLogout }) {
       </section>
 
       <section className="dashboard-panel orders-panel">
-        <div className="panel-heading"><div><span className="panel-kicker">TODAY</span><h2>Recent Orders</h2></div><button className="panel-link">VIEW ALL ORDERS <ChevronRight size={16}/></button></div>
+        <div className="panel-heading"><div><span className="panel-kicker">TODAY</span><h2>Recent Orders</h2></div><button className="panel-link" onClick={onOrders}>VIEW ALL ORDERS <ChevronRight size={16}/></button></div>
         <div className="orders-table"><div className="table-row table-head"><span>ORDER</span><span>CUSTOMER</span><span>MEAL</span><span>TOTAL</span><span>PAYMENT</span><span>STATUS</span></div>{ORDERS.map(o=><div className="table-row" key={o.id}><span className="order-id">{o.id}</span><span>{o.name}</span><span>{o.meal}</span><span className="amount">{o.total}</span><span><b className={'pill '+o.payment.toLowerCase()}>{o.payment}</b></span><span><b className={'pill '+o.status.toLowerCase()}>{o.status}</b></span></div>)}</div>
       </section>
     </main>
@@ -112,7 +127,9 @@ function AdminDashboard({ onLogout }) {
 function App() {
   const isAdmin = window.location.pathname.startsWith('/admin');
   const [loggedIn, setLoggedIn] = useState(false);
+  const [page, setPage] = useState('dashboard');
   if (!isAdmin) return <CustomerLanding />;
-  return loggedIn ? <AdminDashboard onLogout={()=>setLoggedIn(false)}/> : <AdminLogin onLogin={()=>setLoggedIn(true)}/>;
+  if (!loggedIn) return <AdminLogin onLogin={()=>setLoggedIn(true)}/>;
+  return page==='orders' ? <AdminOrders onBack={()=>setPage('dashboard')} onLogout={()=>{setLoggedIn(false);setPage('dashboard')}}/> : <AdminDashboard onOrders={()=>setPage('orders')} onLogout={()=>setLoggedIn(false)}/>;
 }
 createRoot(document.getElementById('root')).render(<App />);
