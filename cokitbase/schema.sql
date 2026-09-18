@@ -93,6 +93,125 @@ begin
 end;
 $$;
 
+-- Secure customer order creation.
+-- Validates service availability, cutoff, item availability, price from the
+-- server-side menu, and reserves stock atomically before creating the order.
+create or replace function public.create_customer_order(
+  p_customer_name text,
+  p_customer_mobile text,
+  p_order_date date,
+  p_items jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order_id uuid;
+  v_order_code text;
+  v_tracking_token uuid;
+  v_total numeric(10,2) := 0;
+  v_item jsonb;
+  v_menu public.menus%rowtype;
+  v_qty integer;
+  v_slot public.service_slots%rowtype;
+begin
+  if trim(coalesce(p_customer_name,'')) = '' then raise exception 'Customer name is required'; end if;
+  if p_customer_mobile !~ '^[0-9]{10}$' then raise exception 'Valid 10-digit mobile number is required'; end if;
+  if p_order_date <> current_date then raise exception 'Orders can only be placed for today'; end if;
+  if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items)=0 then raise exception 'At least one item is required'; end if;
+
+  for v_item in select * from jsonb_array_elements(p_items)
+  loop
+    v_qty := (v_item->>'quantity')::integer;
+    if v_qty is null or v_qty <= 0 then raise exception 'Invalid quantity'; end if;
+
+    select * into v_menu from public.menus where id=(v_item->>'menu_id')::uuid for update;
+    if not found then raise exception 'Menu item not found'; end if;
+
+    select * into v_slot from public.service_slots where id=v_menu.slot;
+    if not v_slot.is_available then raise exception '% service is currently closed', initcap(v_menu.slot); end if;
+    if v_slot.cutoff_time is not null and localtime >= v_slot.cutoff_time then raise exception '% ordering cutoff has passed', initcap(v_menu.slot); end if;
+    if not v_menu.is_available or v_menu.remaining_quantity < v_qty then raise exception '% is unavailable or has insufficient stock', v_menu.item_name; end if;
+
+    update public.menus set remaining_quantity=remaining_quantity-v_qty, updated_at=now() where id=v_menu.id;
+    v_total := v_total + (v_menu.price * v_qty);
+  end loop;
+
+  v_order_code := '#CK' || lpad((floor(random()*9000)+1000)::int::text,4,'0');
+  while exists(select 1 from public.orders where order_code=v_order_code) loop
+    v_order_code := '#CK' || lpad((floor(random()*9000)+1000)::int::text,4,'0');
+  end loop;
+
+  insert into public.orders(order_code,customer_name,customer_mobile,order_date,total_amount)
+  values(v_order_code,trim(p_customer_name),p_customer_mobile,p_order_date,v_total)
+  returning id,tracking_token into v_order_id,v_tracking_token;
+
+  for v_item in select * from jsonb_array_elements(p_items)
+  loop
+    select * into v_menu from public.menus where id=(v_item->>'menu_id')::uuid;
+    insert into public.order_items(order_id,menu_id,item_name,slot,quantity,unit_price)
+    values(v_order_id,v_menu.id,v_menu.item_name,v_menu.slot,(v_item->>'quantity')::integer,v_menu.price);
+  end loop;
+
+  insert into public.payments(order_id,status,method) values(v_order_id,'PENDING','UPI');
+
+  return jsonb_build_object(
+    'id',v_order_id,'order_code',v_order_code,'tracking_token',v_tracking_token,
+    'customer_name',trim(p_customer_name),'customer_mobile',p_customer_mobile,
+    'order_date',p_order_date,'total_amount',v_total,'payment_status','PENDING','order_status','PLACED'
+  );
+end;
+$$;
+
+grant execute on function public.create_customer_order(text,text,date,jsonb) to anon, authenticated;
+
+-- Customer can only read its own order using the tracking token.
+drop policy if exists "public read order by token" on public.orders;
+create policy "customer reads own order by token" on public.orders
+for select using (
+  tracking_token::text = coalesce(current_setting('request.headers', true)::jsonb->>'x-order-token','')
+);
+
+drop policy if exists "public read order items" on public.order_items;
+create policy "customer reads own order items" on public.order_items
+for select using (
+  exists (
+    select 1 from public.orders o
+    where o.id=order_items.order_id
+      and o.tracking_token::text = coalesce(current_setting('request.headers', true)::jsonb->>'x-order-token','')
+  )
+);
+
+drop policy if exists "public read payments" on public.payments;
+create policy "customer reads own payment" on public.payments
+for select using (
+  exists (
+    select 1 from public.orders o
+    where o.id=payments.order_id
+      and o.tracking_token::text = coalesce(current_setting('request.headers', true)::jsonb->>'x-order-token','')
+  )
+);
+
+-- Customer only submits "payment completed" through a controlled RPC.
+create or replace function public.mark_payment_completed(p_tracking_token uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare v_order_id uuid;
+begin
+  select id into v_order_id from public.orders where tracking_token=p_tracking_token;
+  if not found then raise exception 'Order not found'; end if;
+  update public.orders set payment_status='CUSTOMER_MARKED_PAID',updated_at=now() where id=v_order_id;
+  update public.payments set status='CUSTOMER_MARKED_PAID',updated_at=now() where order_id=v_order_id;
+  return true;
+end;
+$$;
+grant execute on function public.mark_payment_completed(uuid) to anon, authenticated;
+
 -- Realtime updates for the customer and admin portals.
 alter table public.service_slots replica identity full;
 alter table public.menus replica identity full;
