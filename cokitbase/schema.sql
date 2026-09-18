@@ -265,3 +265,81 @@ create policy "public insert payments" on public.payments for insert with check 
 
 drop policy if exists "public read payments" on public.payments;
 create policy "public read payments" on public.payments for select using (true);
+
+
+-- Return the current customer-visible order status using its private tracking token.
+create or replace function public.get_customer_order_status(p_tracking_token uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.orders%rowtype;
+begin
+  select * into v_order
+  from public.orders
+  where tracking_token = p_tracking_token;
+
+  if not found then
+    raise exception 'Order not found';
+  end if;
+
+  return jsonb_build_object(
+    'id', v_order.id,
+    'order_code', v_order.order_code,
+    'customer_name', v_order.customer_name,
+    'customer_mobile', v_order.customer_mobile,
+    'order_date', v_order.order_date,
+    'total_amount', v_order.total_amount,
+    'payment_status', v_order.payment_status,
+    'order_status', v_order.order_status,
+    'tracking_token', v_order.tracking_token,
+    'updated_at', v_order.updated_at
+  );
+end;
+$$;
+grant execute on function public.get_customer_order_status(uuid) to anon, authenticated;
+
+-- Admin payment verification RPC. The current admin portal uses design-mode login,
+-- so verification must happen through a controlled server-side function rather than
+-- a direct anonymous table update.
+create or replace function public.verify_order_payment(p_order_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_order public.orders%rowtype;
+  v_now timestamptz := now();
+begin
+  select * into v_order
+  from public.orders
+  where id = p_order_id
+  for update;
+
+  if not found then
+    raise exception 'Order not found';
+  end if;
+
+  update public.orders
+  set payment_status = 'VERIFIED', updated_at = v_now
+  where id = p_order_id;
+
+  update public.payments
+  set status = 'VERIFIED', verified_at = v_now, updated_at = v_now
+  where order_id = p_order_id;
+
+  select * into v_order from public.orders where id = p_order_id;
+
+  return jsonb_build_object(
+    'id', v_order.id,
+    'order_code', v_order.order_code,
+    'payment_status', v_order.payment_status,
+    'order_status', v_order.order_status,
+    'updated_at', v_order.updated_at
+  );
+end;
+$$;
+grant execute on function public.verify_order_payment(uuid) to anon, authenticated;
