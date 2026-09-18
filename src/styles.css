@@ -728,3 +728,11 @@ button { font: inherit; cursor: pointer; }
 .theme-2 .page-wash{background:linear-gradient(135deg,rgba(232,242,229,.72),rgba(249,231,198,.78),rgba(233,224,244,.7))}
 .theme-3 .page-wash{background:linear-gradient(135deg,rgba(238,229,211,.72),rgba(220,237,239,.76),rgba(246,226,221,.72))}
 .theme-4 .page-wash{background:linear-gradient(135deg,rgba(245,229,229,.7),rgba(227,238,215,.75),rgba(240,231,204,.78))}
+
+.alert-settings-panel{margin-bottom:18px}
+.alert-settings-body{padding:0 24px 22px;display:grid;grid-template-columns:minmax(240px,1fr) auto;gap:12px;align-items:end}
+.alert-settings-body label{font:700 10px 'DM Sans',Arial,sans-serif;letter-spacing:1.2px;color:#5f655d}
+.alert-settings-body input{display:block;width:100%;height:46px;margin-top:7px;padding:0 12px;border:1px solid rgba(29,68,40,.17);border-radius:9px;background:#fbfaf3;font:500 15px 'DM Sans',Arial,sans-serif}
+.alert-settings-body button{min-height:46px}
+.alert-settings-body p{grid-column:1/-1;margin:2px 0 0;font:400 12px/1.5 'DM Sans',Arial,sans-serif;color:#777a72}
+@media(max-width:600px){.alert-settings-body{grid-template-columns:1fr;padding:0 16px 18px}.alert-settings-body p{grid-column:auto}.alert-settings-body button{width:100%}}
