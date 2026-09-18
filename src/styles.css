@@ -352,3 +352,30 @@ button { font: inherit; cursor: pointer; }
  .landing-page .meal-card .start-button{width:calc(100% - 36px);margin-left:18px;margin-right:18px}
  .customer-brand .brand-subtitle{display:none}
 }
+
+
+/* CUSTOMER DETAILS + QUANTITY CONTROLS */
+.customer-details-fields{width:min(620px,100%);margin:0 auto 20px;display:grid;grid-template-columns:1fr 1fr;gap:13px;text-align:left}
+.customer-details-fields label{display:block;font-size:11px;font-weight:700;letter-spacing:1.5px;color:#555b52}
+.customer-details-fields input{display:block;width:100%;height:56px;margin-top:8px;border:1px solid rgba(29,68,40,.2);border-radius:12px;background:#fffef7;padding:0 15px;font-size:16px;outline:none}
+.customer-details-fields input:focus{border-color:rgba(29,68,40,.5);box-shadow:0 0 0 3px rgba(29,68,40,.06)}
+.landing-page .meal-items{font-size:14px;line-height:1.7}
+.landing-page .meal-items span{font-size:14px}
+.customer-hero h1{font-size:clamp(42px,7vw,62px)}
+.customer-item span{font-size:19px}
+.customer-item small{font-size:11px}
+.quantity-control{display:flex;align-items:center;justify-content:flex-end;gap:8px;min-width:104px}
+.qty-button{width:32px;height:32px;border:1px solid rgba(29,68,40,.2);border-radius:50%;background:#f5f1e4;color:var(--green);font-size:20px;line-height:1;display:grid;place-items:center}
+.qty-number{min-width:25px;text-align:center;font-size:15px;font-weight:700;color:#9a9d95}
+.qty-number.active{color:var(--green)}
+.demo-login-note{margin:13px 0 0;text-align:center;font-size:9px;letter-spacing:1px;color:#8b806d}
+@media(max-width:600px){
+ .customer-details-fields{grid-template-columns:1fr;gap:10px}
+ .customer-details-fields input{height:54px;font-size:16px}
+ .customer-item{grid-template-columns:1fr auto}
+ .customer-item strong{font-size:17px}
+ .quantity-control{grid-column:1/-1;justify-content:flex-start;border-top:1px solid rgba(29,68,40,.08);padding-top:11px}
+ .qty-button{width:34px;height:34px}
+ .customer-item span{font-size:17px}
+ .landing-page .meal-items span{font-size:13px}
+}
