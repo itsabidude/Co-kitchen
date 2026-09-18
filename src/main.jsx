@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import './styles.css';
 import { COCO_LOGO } from './logoData';
+import { PAYMENT_QR_MATRIX } from './paymentQrData';
 import {
   cokitbaseReady, cokitbase, getSlotAvailability, getMenuForDate,
   getCustomerOrderStatus, subscribeToPortalChanges
@@ -101,13 +102,44 @@ function CustomerCheckout({name,mobile,setMobile,cart,total,onBack,onPlace,error
   return <div className="customer-flow"><header className="site-header"><div className="customer-brand compact-customer-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></div></header><main className="customer-content"><button className="back-dashboard" onClick={onBack}>← BACK TO MENU</button><div className="customer-hero"><span>YOUR ORDER</span><h1>Order Overview</h1></div><section className="customer-order-box">{['lunch','dinner'].map(slot=>{const rows=cart.filter(x=>x.slot===slot);if(!rows.length)return null;return <div className="order-slot-box" key={slot}><h3>{slot.toUpperCase()}</h3>{rows.map(x=><div className="order-line" key={x.id}><span>{x.item_name} × {x.quantity}</span><strong>₹{x.quantity*Number(x.price)}</strong></div>)}</div>})}<div className="customer-total"><span>TOTAL</span><strong>₹{total}</strong></div></section><section className="customer-form"><label>YOUR NAME<input value={name} readOnly/></label><label>MOBILE NUMBER<input value={mobile} onChange={e=>setMobile(e.target.value.replace(/\D/g,'').slice(0,10))} inputMode="numeric" placeholder="10-digit mobile number"/></label>{error&&<div className="login-error">{error}</div>}<button className="start-button" onClick={onPlace}>PLACE ORDER <ArrowRight size={18}/></button></section></main></div>;
 }
 
+function PaymentQr() {
+  return <div className="payment-qr-wrap" aria-label="CO-CO Kitchen payment QR">
+    <svg className="payment-qr" viewBox="0 0 37 37" role="img" aria-label="Scan this QR code to pay">
+      <rect width="37" height="37" fill="#fff"/>
+      {PAYMENT_QR_MATRIX.map((row,y)=>[...row].map((cell,x)=>cell==='1'?<rect key={x+'-'+y} x={x} y={y} width="1" height="1" fill="#000"/>:null))}
+      <circle cx="18.5" cy="18.5" r="4.05" fill="#fff" stroke="#d9d9d9" strokeWidth=".18"/>
+      <g transform="translate(15.9 16.2)">
+        <rect x="0.4" y="0.8" width="1.8" height="4.4" rx=".9" fill="#3b82f6" transform="rotate(24 1.3 3)"/>
+        <rect x="1.8" y=".2" width="1.9" height="4.8" rx=".9" fill="#22a447" transform="rotate(35 2.7 2.6)"/>
+        <rect x="3.1" y=".9" width="1.8" height="4.4" rx=".9" fill="#ef4444" transform="rotate(-30 4 3)"/>
+      </g>
+    </svg>
+  </div>;
+}
+
 function CustomerPayment({order,total,onPaid}) {
-  return <div className="customer-flow"><header className="site-header"><div className="customer-brand compact-customer-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></div></header><main className="customer-content centered"><div className="customer-hero"><span>PAYMENT</span><h1>UPI PAYMENT</h1><p>Complete payment using the QR / UPI details below.</p></div><div className="qr-placeholder">UPI QR</div><div className="upi-id">coco-kitchen@upi</div><p className="payment-note">Demo UPI ID — replace with the kitchen's registered UPI ID.</p><button className="start-button" onClick={onPaid}>PAYMENT COMPLETED</button><p className="payment-note">Payment will be verified by CO-CO Kitchen after submission.</p></main></div>;
+  return <div className="customer-flow payment-page"><header className="site-header"><div className="customer-brand compact-customer-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="CO-CO Kitchen" /><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">HOMELY KERALA FLAVOURS</span></div></div></header><main className="customer-content centered"><div className="customer-hero"><span>PAYMENT</span><h1>UPI PAYMENT</h1><p>Complete your payment by scanning the QR code below.</p></div><PaymentQr/><div className="upi-id">UPI ID: merintgeorge4u@oksbi</div><p className="payment-note">Please pay the exact order amount using any UPI application.</p><button className="start-button" onClick={onPaid}>I HAVE COMPLETED THE PAYMENT</button><p className="payment-note">Your payment will be verified by CO-CO Kitchen after submission.</p></main></div>;
 }
 
 function CustomerVerification({order,onHome,onFeedback}) {
-  const verified=order?.payment_status==='VERIFIED';
-  return <div className="customer-flow verification-page"><header className="site-header verification-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">PAYMENT STATUS</span></div></header><main className="customer-content centered"><span className="admin-eyebrow">{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</span><h1>{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</h1><p>Thank you, {order?.customer_name||'there'}.</p><div className="payment-status-badge">{verified?'VERIFIED':'BEING VERIFIED'}</div><p className="verification-copy">{verified?'Your payment is verified.':'Your payment is being verified, in the meantime tell us your fav dish of Co-co'}</p><button className="feedback-button" type="button" onClick={onFeedback}>SUGGESTIONS & TESTIMONIALS <ArrowRight size={17}/></button><button className="start-button secondary-customer-action" onClick={onHome}>BACK TO HOME</button></main></div>;
+  const [liveOrder,setLiveOrder]=useState(order);
+  useEffect(()=>{
+    setLiveOrder(order);
+    if(!order?.tracking_token)return;
+    let alive=true;
+    const refresh=async()=>{
+      try{
+        const latest=await getCustomerOrderStatus(order.tracking_token);
+        if(alive&&latest)setLiveOrder(prev=>({...prev,...latest}));
+      }catch(_e){}
+    };
+    refresh();
+    const timer=setInterval(refresh,2000);
+    return()=>{alive=false;clearInterval(timer)};
+  },[order]);
+  const current=liveOrder||order;
+  const verified=current?.payment_status==='VERIFIED';
+  return <div className="customer-flow verification-page"><header className="site-header verification-header"><div className="brand-lockup"><span className="brand-name">CO-CO KITCHEN</span><span className="brand-subtitle">PAYMENT STATUS</span></div></header><main className="customer-content centered"><span className="admin-eyebrow">{verified?'PAYMENT VERIFIED':'PAYMENT BEING VERIFIED'}</span><h1>{verified?'Payment Verified':'Payment Being Verified'}</h1><p className="verification-copy">Thank you, {current?.customer_name||'there'}.</p>{verified?<div className="payment-status-badge verified-status">VERIFIED</div>:<div className="payment-status-badge">BEING VERIFIED</div>}<p className="verification-copy">{verified?'Your payment has been successfully verified. Your order is now confirmed.':'Your payment is being verified. A confirmation will appear here once CO-CO Kitchen approves your payment.'}</p><div className="whatsapp-note"><span>✓</span><strong>{verified?'Your payment has been verified.':'Your payment verification will be sent on WhatsApp.'}</strong></div><button className="feedback-button" type="button" onClick={onFeedback}>SUGGESTIONS & TESTIMONIALS <ArrowRight size={17}/></button><button className="start-button secondary-customer-action" onClick={onHome}>BACK TO HOME</button></main></div>;
 }
 
 function CustomerFeedback({name,onBack}) {
