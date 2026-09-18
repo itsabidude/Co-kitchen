@@ -577,3 +577,73 @@ button { font: inherit; cursor: pointer; }
 
 .verification-header{display:flex;align-items:center;justify-content:space-between}
 .verification-header-label{font:700 10px/1 'DM Sans',Arial,sans-serif;letter-spacing:1.8px;color:var(--green)}
+
+
+/* ADMIN MENU MANAGEMENT — structured, readable and mobile-first */
+.admin-shell .menu-page{max-width:1180px;margin:0 auto;padding-bottom:64px}
+.admin-shell .menu-page .orders-page-intro{align-items:stretch;gap:28px;margin-bottom:22px}
+.admin-shell .menu-page .orders-page-intro>div:first-child{flex:1;min-width:0}
+.admin-shell .menu-page .orders-page-intro h1{font-family:'Libre Baskerville',Georgia,serif;font-size:clamp(38px,5vw,52px);line-height:1.1;margin:7px 0 10px}
+.admin-shell .menu-page .orders-page-intro p{font:400 15px/1.65 'DM Sans',Arial,sans-serif;color:#6a6f67;max-width:650px}
+.menu-date-card{min-width:240px;padding:18px 20px;border:1px solid rgba(183,163,107,.45);border-radius:16px;background:#fffef7;display:flex;flex-direction:column;justify-content:center;gap:8px;box-shadow:0 8px 22px rgba(35,49,33,.04)}
+.menu-date-card>span{font:700 10px/1 'DM Sans',Arial,sans-serif;letter-spacing:1.5px;color:#756e61}
+.menu-date-card input{height:46px!important;margin:0!important;font:600 15px 'DM Sans',Arial,sans-serif!important;color:var(--green)!important}
+.menu-date-card strong{font:700 12px 'DM Sans',Arial,sans-serif;letter-spacing:.8px;color:#756e61}
+.admin-shell .service-control-panel{margin-bottom:22px}
+.service-toggle-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 24px 24px}
+.service-toggle-card{min-height:76px;padding:16px 18px;border:1px solid rgba(29,68,40,.12);border-radius:14px;background:#fbfaf3;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.service-toggle-card strong{display:block;font:700 18px 'Libre Baskerville',Georgia,serif;color:var(--green);letter-spacing:.2px}
+.service-toggle-card span{display:block;margin-top:5px;font:400 12px/1.4 'DM Sans',Arial,sans-serif;color:#777a72}
+.service-toggle-card .availability-toggle{flex:0 0 auto}
+.admin-shell .menu-editor{overflow:hidden}
+.menu-rate-intro{padding:22px 24px 18px!important;border-bottom:1px solid rgba(29,68,40,.08)!important;display:flex!important;align-items:center!important;justify-content:space-between!important;gap:20px!important;background:#fcfbf5}
+.menu-rate-intro>div{display:grid;gap:6px}
+.menu-rate-intro strong{font:700 20px/1.25 'Libre Baskerville',Georgia,serif!important;color:var(--green)!important}
+.menu-rate-intro small{font:400 13px/1.5 'DM Sans',Arial,sans-serif;color:#777a72}
+.menu-live-badge{flex:0 0 auto;padding:8px 12px;border:1px solid rgba(29,68,40,.16);border-radius:999px;background:#edf3e9;color:var(--green);font:700 9px 'DM Sans',Arial,sans-serif;letter-spacing:1.3px}
+.menu-slot-tabs{display:flex;gap:8px;padding:18px 24px 6px;background:#fcfbf5}
+.menu-slot-tabs button{min-height:44px;padding:0 20px;border:1px solid rgba(29,68,40,.14);border-radius:999px;background:#f5f1e4;color:#74776f;font:700 12px 'DM Sans',Arial,sans-serif;letter-spacing:1px}
+.menu-slot-tabs button.active{background:var(--green);border-color:var(--green);color:#fffdf5}
+.admin-shell .menu-editor>.panel-heading{padding:18px 24px 16px!important;border-bottom:1px solid rgba(29,68,40,.08)}
+.admin-shell .menu-editor>.panel-heading h2{font:700 27px/1.25 'Libre Baskerville',Georgia,serif;color:var(--green)}
+.admin-shell .menu-editor>.panel-heading .panel-kicker{font:700 10px 'DM Sans',Arial,sans-serif;letter-spacing:1.6px}
+.admin-shell .menu-card-list{padding:18px 24px 6px!important;display:grid;gap:14px}
+.admin-shell .menu-item-editor-card{padding:20px!important;border:1px solid rgba(183,163,107,.38)!important;border-radius:16px!important;background:#fffef7!important;box-shadow:0 5px 16px rgba(35,49,33,.035)}
+.admin-shell .menu-item-editor-card:focus-within{border-color:rgba(29,68,40,.3)!important;box-shadow:0 7px 20px rgba(29,68,40,.06)}
+.admin-shell .menu-item-editor-fields{grid-template-columns:minmax(240px,1.8fr) repeat(3,minmax(120px,.75fr))!important;gap:14px!important}
+.admin-shell .menu-item-editor-fields label{font:700 11px/1.2 'DM Sans',Arial,sans-serif!important;letter-spacing:1.1px!important;color:#5f655d!important}
+.admin-shell .menu-item-editor-fields input{height:48px!important;margin-top:8px!important;padding:0 13px!important;border:1px solid rgba(29,68,40,.17)!important;border-radius:10px!important;background:#fbfaf3!important;font:500 16px 'DM Sans',Arial,sans-serif!important;color:#30372f!important}
+.admin-shell .menu-item-editor-fields input:focus{border-color:rgba(29,68,40,.45)!important;box-shadow:0 0 0 3px rgba(29,68,40,.06)!important}
+.admin-shell .menu-description-field{margin-top:1px}
+.admin-shell .menu-item-editor-bottom{margin-top:15px!important;padding-top:14px!important}
+.admin-shell .available-toggle-label{font:700 11px 'DM Sans',Arial,sans-serif!important;letter-spacing:1.1px!important}
+.admin-shell .remove-item{min-height:36px;padding:0 13px;border:1px solid rgba(160,55,45,.2);border-radius:9px;background:#fff8f6;color:#a03f34;font:700 10px 'DM Sans',Arial,sans-serif;letter-spacing:1px}
+.admin-shell .add-item-button{width:calc(100% - 48px);margin:14px 24px 4px;min-height:48px;border:1px dashed rgba(29,68,40,.28);border-radius:12px;background:#f7f5ec;color:var(--green);font:700 12px 'DM Sans',Arial,sans-serif;letter-spacing:1px}
+.admin-shell .menu-editor .login-error{margin:14px 24px 0;font:600 13px/1.45 'DM Sans',Arial,sans-serif}
+.admin-shell .menu-editor-footer{margin-top:18px;padding:18px 24px 24px!important;border-top:1px solid rgba(29,68,40,.08);display:flex;align-items:center;justify-content:space-between;gap:18px}
+.admin-shell .menu-editor-footer span{font:400 12px/1.5 'DM Sans',Arial,sans-serif;color:#777a72;max-width:520px}
+.admin-shell .publish-button{min-height:48px;white-space:nowrap;font:700 12px 'DM Sans',Arial,sans-serif!important;letter-spacing:.8px}
+@media(max-width:760px){
+ .admin-shell .menu-page{padding-bottom:30px}
+ .admin-shell .menu-page .orders-page-intro{display:grid;gap:14px}
+ .menu-date-card{min-width:0}
+ .service-toggle-grid{grid-template-columns:1fr;padding:0 14px 16px}
+ .menu-rate-intro{padding:18px 16px 16px!important;align-items:flex-start!important}
+ .menu-rate-intro strong{font-size:17px!important}
+ .menu-rate-intro small{font-size:12px}
+ .menu-live-badge{font-size:8px;padding:7px 9px}
+ .menu-slot-tabs{padding:14px 16px 4px;overflow-x:auto}
+ .menu-slot-tabs button{min-width:150px;padding:0 14px}
+ .admin-shell .menu-editor>.panel-heading{padding:16px!important}
+ .admin-shell .menu-editor>.panel-heading h2{font-size:22px}
+ .admin-shell .menu-card-list{padding:14px 14px 4px!important}
+ .admin-shell .menu-item-editor-card{padding:16px!important}
+ .admin-shell .menu-item-editor-fields{grid-template-columns:1fr 1fr!important;gap:12px!important}
+ .admin-shell .menu-item-editor-fields label:first-child,.admin-shell .menu-description-field{grid-column:1/-1}
+ .admin-shell .menu-item-editor-fields input{height:50px!important;font-size:16px!important}
+ .admin-shell .menu-item-editor-bottom{align-items:center}
+ .admin-shell .add-item-button{width:calc(100% - 32px);margin:12px 16px 4px}
+ .admin-shell .menu-editor .login-error{margin-left:16px;margin-right:16px}
+ .admin-shell .menu-editor-footer{padding:16px!important;display:grid;gap:12px}
+ .admin-shell .publish-button{width:100%}
+}
