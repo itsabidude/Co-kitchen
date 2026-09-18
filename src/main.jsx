@@ -33,10 +33,6 @@ function formatDate(date) {
   return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }).format(date).toUpperCase();
 }
 
-function CocoLogo({large=false}) {
-  return <img className={large ? 'coco-logo large' : 'coco-logo'} src="/Co-kitchen/coco-logo.svg" alt="Co-Co Kitchen" />;
-}
-
 function CustomerLanding() {
   const [now,setNow]=useState(new Date());
   const [slots,setSlots]=useState([{id:'lunch',is_available:true},{id:'dinner',is_available:true}]);
@@ -182,7 +178,7 @@ function AdminOrderDetails({ order, onBack, onLogout }) {
     finally{setSaving(false);}
   };
   return <div className="admin-shell dashboard-shell">
-    <header className="admin-header"><div className="admin-brand"><CocoLogo/><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
+    <header className="admin-header"><div className="admin-brand"><img className="brand-logo-image" src={COCO_LOGO} alt="Co-CO Kitchen" /><div><strong>CO-CO KITCHEN</strong><span>ADMINISTRATION</span></div></div><div className="admin-header-right"><span className="admin-date">{formatDate(new Date())}</span><button className="logout-button" onClick={onLogout}><LogOut size={16}/> LOG OUT</button></div></header>
     <main className="dashboard-content order-detail-page">
       <button className="back-dashboard" onClick={onBack}><ArrowLeft size={16}/> ALL ORDERS</button>
       <section className="detail-hero"><div><span className="admin-eyebrow">ORDER DETAILS</span><h1>{order.id}</h1><p>{order.meal}</p></div><b className={'pill '+status.toLowerCase()}>{status}</b></section>
