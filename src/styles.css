@@ -267,3 +267,26 @@ button { font: inherit; cursor: pointer; }
 @media(max-width:900px){.stats-grid{grid-template-columns:repeat(3,1fr)}.dashboard-grid{grid-template-columns:1fr}}
 @media(max-width:600px){.admin-login-card{padding:36px 22px 28px;border-radius:23px}.admin-header{height:68px;padding:0 16px}.admin-date{display:none}.dashboard-content{width:calc(100% - 24px);padding:27px 0 42px}.dashboard-intro{align-items:flex-start;gap:15px;flex-direction:column}.dashboard-intro h1{font-size:34px}.dashboard-intro p{font-size:12px}.stats-grid{grid-template-columns:1fr 1fr;gap:10px}.stat-card{min-height:128px;padding:15px}.stat-copy strong{font-size:23px}.stat-copy small{font-size:9px}.stat-copy span{font-size:8px}.dashboard-grid{gap:12px}.panel-heading{padding:19px 17px 15px}.panel-heading h2{font-size:19px}.slot-tabs{margin:0 17px}.prep-list,.pending-list{padding-left:17px;padding-right:17px}.panel-description{padding:0 17px}.full-panel-button{width:calc(100% - 34px);margin-left:17px;margin-right:17px}.service-status{align-self:flex-start}.admin-header-right .logout-button{font-size:9px}.admin-brand strong{font-size:12px}}
 @media(max-width:380px){.stats-grid{grid-template-columns:1fr}.admin-login-card h1{font-size:31px}}
+
+/* ORDERS PAGE */
+.back-dashboard{border:0;background:transparent;color:var(--green);display:flex;align-items:center;gap:7px;font-size:10px;font-weight:700;letter-spacing:1.1px;padding:0;margin-bottom:25px;}
+.orders-page-intro{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:28px;}
+.orders-page-intro h1{margin:8px 0 5px;font:700 clamp(32px,5vw,46px)/1.12 'Libre Baskerville',serif;color:var(--green);}
+.orders-page-intro p{margin:0;color:#666c63;font-size:14px;}
+.orders-count{min-width:125px;padding:13px 18px;border:1px solid rgba(183,163,107,.5);border-radius:16px;background:rgba(255,254,247,.8);text-align:center;}
+.orders-count strong{display:block;font:700 25px 'Libre Baskerville',serif;color:var(--green);}
+.orders-count span{font-size:8px;font-weight:700;letter-spacing:1.1px;color:#777b72;}
+.orders-toolbar{display:flex;gap:12px;margin-bottom:15px;}
+.search-box,.filter-wrap{height:48px;border:1px solid rgba(29,68,40,.16);border-radius:12px;background:rgba(255,254,247,.94);display:flex;align-items:center;color:#777d73;}
+.search-box{flex:1;padding:0 14px;gap:9px;}
+.search-box input{border:0;outline:0;background:transparent;width:100%;font:400 12px 'DM Sans',sans-serif;color:var(--ink);}
+.search-box input::placeholder{color:#989b93;}
+.filter-wrap{padding:0 12px;gap:7px;}
+.filter-wrap select{border:0;outline:0;background:transparent;color:var(--green);font:700 9px 'DM Sans',sans-serif;letter-spacing:.8px;}
+.orders-page-panel{overflow:hidden;}
+.customer-name{display:block;font-weight:600;color:#30372f;font-size:11px;}
+.customer-phone{display:block;margin-top:3px;color:#92968e;font-size:9px;}
+.order-click{cursor:pointer;transition:background .15s ease;}
+.order-click:hover{background:#faf7ed;}
+.empty-orders{text-align:center;padding:55px 20px;color:#777c73;font-size:13px;}
+@media(max-width:600px){.orders-page-intro{align-items:flex-start;gap:18px;flex-direction:column}.orders-page-intro h1{font-size:34px}.orders-count{align-self:stretch;text-align:left;display:flex;align-items:center;gap:10px}.orders-count strong{font-size:23px}.orders-toolbar{flex-direction:column}.filter-wrap{width:100%}.search-box{flex:none}.orders-page .table-row{min-width:820px}}
