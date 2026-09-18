@@ -343,3 +343,77 @@ begin
 end;
 $$;
 grant execute on function public.verify_order_payment(uuid) to anon, authenticated;
+
+
+-- BUSINESS TRACKING
+create table if not exists public.expenses (
+  id uuid primary key default gen_random_uuid(),
+  purchase_date date not null default current_date,
+  item_name text not null,
+  quantity numeric(12,3) not null check (quantity > 0),
+  unit text not null default 'kg' check (unit in ('kg','L','pcs','pack','other')),
+  unit_price numeric(12,2) not null check (unit_price >= 0),
+  total_cost numeric(12,2) generated always as (quantity * unit_price) stored,
+  notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+create table if not exists public.testimonials (
+  id uuid primary key default gen_random_uuid(),
+  customer_name text not null default 'Customer',
+  rating integer not null default 5 check (rating between 1 and 5),
+  message text not null,
+  is_approved boolean not null default false,
+  is_featured boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+-- Admin order editing: changing quantity adjusts stock and order total atomically.
+create or replace function public.update_order_item(p_order_item_id uuid,p_quantity integer)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_item public.order_items%rowtype; v_menu public.menus%rowtype; v_order public.orders%rowtype; v_diff integer;
+begin
+  select * into v_item from public.order_items where id=p_order_item_id for update;
+  if not found then raise exception 'Order item not found'; end if;
+  if p_quantity<=0 then raise exception 'Quantity must be at least 1'; end if;
+  v_diff:=p_quantity-v_item.quantity;
+  if v_diff<>0 and v_item.menu_id is not null then
+    select * into v_menu from public.menus where id=v_item.menu_id for update;
+    if not found then raise exception 'Menu item no longer exists'; end if;
+    if v_diff>0 and v_menu.remaining_quantity<v_diff then raise exception 'Only % additional units are available',v_menu.remaining_quantity; end if;
+    update public.menus set remaining_quantity=remaining_quantity-v_diff,updated_at=now() where id=v_menu.id;
+  end if;
+  update public.order_items set quantity=p_quantity where id=p_order_item_id returning * into v_item;
+  select * into v_order from public.orders where id=v_item.order_id for update;
+  update public.orders set total_amount=(select coalesce(sum(line_total),0) from public.order_items where order_id=v_order.id),updated_at=now() where id=v_order.id;
+  return jsonb_build_object('order_id',v_order.id,'order_item_id',v_item.id,'quantity',v_item.quantity,'total_amount',(select total_amount from public.orders where id=v_order.id));
+end; $$;
+grant execute on function public.update_order_item(uuid,integer) to anon,authenticated;
+
+create or replace function public.delete_order_item(p_order_item_id uuid)
+returns jsonb language plpgsql security definer set search_path=public as $$
+declare v_item public.order_items%rowtype; v_order_id uuid;
+begin
+  select * into v_item from public.order_items where id=p_order_item_id for update;
+  if not found then raise exception 'Order item not found'; end if;
+  v_order_id:=v_item.order_id;
+  if v_item.menu_id is not null then update public.menus set remaining_quantity=least(total_quantity,remaining_quantity+v_item.quantity),updated_at=now() where id=v_item.menu_id; end if;
+  delete from public.order_items where id=p_order_item_id;
+  update public.orders set total_amount=(select coalesce(sum(line_total),0) from public.order_items where order_id=v_order_id),updated_at=now() where id=v_order_id;
+  return jsonb_build_object('order_id',v_order_id,'total_amount',(select total_amount from public.orders where id=v_order_id));
+end; $$;
+grant execute on function public.delete_order_item(uuid) to anon,authenticated;
+
+alter table public.expenses enable row level security;
+alter table public.testimonials enable row level security;
+drop policy if exists "admin manage expenses" on public.expenses;
+create policy "admin manage expenses" on public.expenses for all using (true) with check (true);
+drop policy if exists "public read approved testimonials" on public.testimonials;
+create policy "public read approved testimonials" on public.testimonials for select using (is_approved=true);
+drop policy if exists "public insert testimonials" on public.testimonials;
+create policy "public insert testimonials" on public.testimonials for insert with check (true);
+drop policy if exists "admin update testimonials" on public.testimonials;
+create policy "admin update testimonials" on public.testimonials for update using (true) with check (true);
+drop policy if exists "admin delete testimonials" on public.testimonials;
+create policy "admin delete testimonials" on public.testimonials for delete using (true);
