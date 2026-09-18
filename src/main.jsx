@@ -58,8 +58,26 @@ function CustomerLanding() {
   useEffect(()=>{const t=setInterval(()=>setNow(new Date()),1000);return()=>clearInterval(t)},[]);
   const today=new Date().toISOString().slice(0,10);
   const load=async()=>{if(!cokitbaseReady)return;try{const [s,m]=await Promise.all([getSlotAvailability(),getMenuForDate(today)]);setSlots(s||[]);setMenus(m||[])}catch(e){setError(e.message||'Could not load today’s menu.')}};
-  useEffect(()=>{if(!cokitbaseReady)return;const loadTestimonials=async()=>{try{const {data}=await cokitbase.from('testimonials').select('*').eq('is_approved',true).eq('is_featured',true).order('created_at',{ascending:false}).limit(8);setTestimonials(data||[])}catch(_e){setTestimonials([])}};loadTestimonials();const unsub=subscribeToPortalChanges(loadTestimonials);return unsub},[]);
-  useEffect(()=>{load();const unsub=subscribeToPortalChanges(load);return unsub},[]);
+  useEffect(()=>{
+    let alive=true;
+    const loadTestimonials=async()=>{
+      if(!cokitbaseReady||!cokitbase)return;
+      try{
+        const {data}=await cokitbase.from('testimonials').select('*').eq('is_approved',true).eq('is_featured',true).order('created_at',{ascending:false}).limit(8);
+        if(alive)setTestimonials(data||[]);
+      }catch(_e){if(alive)setTestimonials([])}
+    };
+    loadTestimonials();
+    return()=>{alive=false};
+  },[]);
+  useEffect(()=>{
+    let alive=true;
+    const boot=async()=>{try{await load()}catch(_e){if(alive)setError('Could not load today’s menu.')}};
+    boot();
+    if(!cokitbaseReady)return()=>{alive=false};
+    const unsub=subscribeToPortalChanges(()=>{if(alive)load()});
+    return()=>{alive=false;unsub()};
+  },[]);
   const slotOpen=id=>slots.find(x=>x.id===id)?.is_available??true;
   const itemsFor=id=>menus.filter(x=>x.slot===id&&x.is_available&&x.remaining_quantity>0);
   const openSlot=id=>{if(!canStart())return;setSlot(id);setPage('menu')};
@@ -116,7 +134,7 @@ function foodEmoji(name){
 }
 function TestimonialBubbles({testimonials=[]}){
   if(!testimonials.length)return null;
-  return <section className="testimonial-bubbles-section"><div className="testimonial-bubbles-heading"><span>FROM OUR TABLE</span><h2>What people are saying</h2></div><div className="testimonial-bubbles">{testimonials.map((t,i)=><article className={'testimonial-bubble bubble-'+(i%5)} key={t.id}><div className="bubble-stars">{'★'.repeat(t.rating)}</div><p>“{t.message}”</p><strong>— {t.customer_name}</strong></article>)}</div></section>;
+  return <section className="testimonial-bubbles-section"><div className="testimonial-bubbles-heading"><span>FROM OUR TABLE</span><h2>What people are saying</h2></div><div className="testimonial-bubbles">{testimonials.map((t,i)=>{const stars=Math.max(0,Math.min(5,Math.floor(Number(t.rating)||0)));return <article className={'testimonial-bubble bubble-'+(i%5)} key={t.id||i}><div className="bubble-stars">{'★'.repeat(stars)}</div><p>“{t.message||''}”</p><strong>— {t.customer_name||'Customer'}</strong></article>})}</div></section>;
 }
 
 function CustomerMenu({slot,items,cart,add,changeQty,onBack,onSwitchSlot,onCart}) {
