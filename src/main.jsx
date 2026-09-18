@@ -60,13 +60,14 @@ function CustomerLanding() {
     if(!cart.length)return;
     try{
       if(!cokitbaseReady){setOrder({order_code:'#CK-DEMO',customer_name:name,total_amount:total,payment_status:'PENDING'});setPage('payment');return}
-      const orderCode='#CK'+Math.floor(1000+Math.random()*9000);
-      const {data:o,error:e}=await cokitbase.from('orders').insert({order_code:orderCode,customer_name:name.trim(),customer_mobile:mobile,order_date:today,total_amount:total,payment_status:'PENDING',order_status:'PLACED'}).select().single();
+      const payload=cart.map(x=>({menu_id:x.id,quantity:x.quantity}));
+      const {data:o,error:e}=await cokitbase.rpc('create_customer_order',{
+        p_customer_name:name.trim(),p_customer_mobile:mobile,p_order_date:today,p_items:payload
+      });
       if(e)throw e;
-      const rows=cart.map(x=>({order_id:o.id,menu_id:x.id,item_name:x.item_name,slot:x.slot,quantity:x.quantity,unit_price:x.price}));
-      const {error:e2}=await cokitbase.from('order_items').insert(rows);if(e2)throw e2;
-      const {error:e3}=await cokitbase.from('payments').insert({order_id:o.id,status:'PENDING',method:'UPI'});if(e3)throw e3;
-      setOrder({...o,order_items:rows});setPage('payment');
+      if(!o?.id)throw new Error('Order could not be created.');
+      sessionStorage.setItem('cocoOrderToken',o.tracking_token);
+      setOrder(o);setPage('payment');
     }catch(e){setError(e.message||'Could not place your order.')}
   };
   const markPaid=async()=>{
